@@ -1,7 +1,7 @@
 // components/ToggleSwitch.tsx
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { COLORS } from '../theme';
+import { COLORS } from '../../theme';
 
 interface ToggleSwitchProps {
   label: string;

@@ -1,23 +1,27 @@
 // App.tsx
 import React from 'react';
-import { StatusBar } from 'expo-status-bar';
-// import AppLoading from 'expo-app-loading';
-import { useFonts } from 'expo-font';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useFonts } from 'expo-font';
+// import AppLoading from 'expo-app-loading';
+import { StatusBar } from 'expo-status-bar';
 
-import Splash from './screens/Splash';
-import Auth from './screens/Auth';
-import BottomTabs from './navigation/BottomTabs';
-import { RootStackParamList } from './types';
+import AdminLogin from './admin/screens/AdminLogin';
+import AdminStack from './admin/navigation/AdminStack';
+import UserAuth from './screens/Auth';
+import UserTabs from './navigation/BottomTabs';
+
+type RootStackParamList = {
+  UserAuth: undefined;
+  UserMain: undefined;
+  AdminLogin: undefined;
+  AdminMain: undefined;
+};
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export default function App(): React.ReactElement {
-  const [loaded] = useFonts({
-    JapanRamen: require('./assets/fonts/JAPAN RAMEN.otf')
-  });
-  
+export default function App() {
+  const [loaded] = useFonts({ JapanRamen: require('./assets/fonts/JAPAN RAMEN.otf') });
   // if (!loaded) return <AppLoading />;
 
   return (
@@ -25,9 +29,13 @@ export default function App(): React.ReactElement {
       <StatusBar style="light" />
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Splash" component={Splash} />
-          <Stack.Screen name="Auth" component={Auth} />
-          <Stack.Screen name="Main" component={BottomTabs} />
+          {/* User flow */}
+          <Stack.Screen name="UserAuth" component={UserAuth} />
+          <Stack.Screen name="UserMain" component={UserTabs} />
+
+          {/* Admin flow */}
+          <Stack.Screen name="AdminLogin" component={AdminLogin} />
+          <Stack.Screen name="AdminMain" component={AdminStack} />
         </Stack.Navigator>
       </NavigationContainer>
     </>

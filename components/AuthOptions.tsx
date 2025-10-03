@@ -1,9 +1,12 @@
 // components/AuthOptions.tsx
 import React from 'react';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Modal from 'react-native-modal';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS } from '../theme';
+import { RootStackParamList } from '../types';
 
 interface AuthOptionsProps {
   visible: boolean;
@@ -12,24 +15,33 @@ interface AuthOptionsProps {
 
 interface IconButtonProps {
   icon: string;
+  onPress: () => void;
 }
 
-const IconButton: React.FC<IconButtonProps> = ({ icon }) => (
-  <TouchableOpacity style={styles.iconBtn} activeOpacity={0.85}>
+const IconButton: React.FC<IconButtonProps> = ({ icon, onPress }) => (
+  <TouchableOpacity style={styles.iconBtn} activeOpacity={0.85} onPress={onPress}>
     <FontAwesome name={icon as any} size={30} color="#000" />
   </TouchableOpacity>
 );
 
+type AuthNavProp = NativeStackNavigationProp<RootStackParamList>;
+
 export default function AuthOptions({ visible, onClose }: AuthOptionsProps): React.ReactElement {
+  const navigation = useNavigation<AuthNavProp>();
+  
+  const handleAuthComplete = () => {
+    navigation.replace('UserMain'); // Updated to match RootStackParamList
+  };
+
   return (
     <Modal isVisible={visible} onBackdropPress={onClose} style={styles.modal}>
       <View style={styles.sheet}>
         <View style={styles.grabber} />
         <Text style={styles.heading}>Continue with</Text>
         <View style={styles.row}>
-          <IconButton icon="apple" />
-          <IconButton icon="google" />
-          <IconButton icon="envelope-o" />
+          <IconButton icon="apple" onPress={handleAuthComplete} />
+          <IconButton icon="google" onPress={handleAuthComplete} />
+          <IconButton icon="envelope-o" onPress={handleAuthComplete} />
         </View>
         <Text style={styles.terms}>
           By continuing, you agree to Anime Flow's Terms and Privacy Policy

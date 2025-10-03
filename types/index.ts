@@ -6,6 +6,7 @@ export interface Episode {
   thumb: any;
   synopsis: string;
   rating: number;
+  votes?: string;
 }
 
 export interface Anime {
@@ -16,9 +17,10 @@ export interface Anime {
 }
 
 export type RootStackParamList = {
-  Splash: undefined;
-  Auth: undefined;
-  Main: undefined;
+  UserAuth: undefined;
+  UserMain: undefined;
+  AdminLogin: undefined;
+  AdminMain: undefined;
 };
 
 export type MainTabParamList = {
