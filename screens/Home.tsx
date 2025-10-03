@@ -1,118 +1,117 @@
-// screens/Home.tsx
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { useEffect, useState } from 'react';
+import {
+  View, Text, StyleSheet, TextInput, TouchableOpacity,
+  FlatList, Image, ActivityIndicator,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SIZES } from '../theme';
-import { HomeStackParamList } from '../types';
-import Logo from '../components/Logo';
-import data from '../data/anime';
+import ApiService from '../services/api';
 
-type Props = NativeStackScreenProps<HomeStackParamList, 'Home'>;
+export default function Home({ navigation }: any) {
+  const [list, setList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
 
-export default function Home({ navigation }: Props): React.ReactElement {
-  const top = data[0];
+  const fetchList = async () => {
+    setLoading(true);
+    const res = await ApiService.getAnimeList();
+    setList(res.anime);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    ApiService.init().then(fetchList);
+  }, []);
+
+  const handleSearch = async (text: string) => {
+    setQuery(text);
+    if (!text.trim()) return fetchList();
+    setSearching(true);
+    const res = await ApiService.getAnimeList(); // replace with search endpoint if exists
+    setList(res.anime.filter(a => a.title.toLowerCase().includes(text.toLowerCase())));
+    setSearching(false);
+  };
+
+  const renderItem = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() =>
+        navigation.navigate('Detail', { anime: item })
+      }
+    >
+      <Image source={{ uri: item.poster }} style={styles.image} />
+      <Text style={styles.cardTitle}>{item.title}</Text>
+    </TouchableOpacity>
+  );
+
+  if (loading || searching) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator color={COLORS.cyan} size="large" />
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Logo size={40} />
-        <TouchableOpacity style={styles.bell}>
-          <Text style={{ color: '#9EA0A3' }}>🔔</Text>
+        <Text style={styles.title}>ANIME FLOW</Text>
+        <TouchableOpacity>
+          <Ionicons name="notifications-outline" color={COLORS.text} size={24} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.selector}>
-        <Text style={styles.selectorTxt}>Season Selector</Text>
-        <Text style={styles.chev}>▾</Text>
+      <View style={styles.searchBar}>
+        <Ionicons name="search-outline" color="#666" size={20} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search anime..."
+          placeholderTextColor="#666"
+          value={query}
+          onChangeText={handleSearch}
+        />
       </View>
 
-      <TouchableOpacity 
-        style={styles.card} 
-        activeOpacity={0.9}
-        onPress={() => navigation.navigate('Detail', { anime: top })}
-      >
-        <Image source={top.poster} style={styles.poster} />
-        <View style={styles.ribbon}>
-          <Text style={styles.ribbonTxt}>#1 Rated</Text>
-        </View>
-        <Text style={styles.score}>★ 9.7/10</Text>
-        <Text style={styles.cardTitle}>{top.title}</Text>
-      </TouchableOpacity>
-    </View>
+      <FlatList
+        data={list}
+        renderItem={renderItem}
+        keyExtractor={item => item._id}
+        numColumns={2}
+        contentContainerStyle={styles.list}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#000' 
+  container: { flex: 1, backgroundColor: COLORS.black },
+  centered: { justifyContent: 'center', alignItems: 'center' },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', padding: 20,
   },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingHorizontal: 16, 
-    paddingTop: 14 
+  title: {
+    color: COLORS.cyan, fontFamily: FONTS.title,
+    fontSize: 24, fontWeight: 'bold',
   },
-  bell: { 
-    width: 36, 
-    height: 36, 
-    borderRadius: 18, 
-    backgroundColor: '#1E1E20', 
-    alignItems: 'center', 
-    justifyContent: 'center' 
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1A1A1A', margin: 20,
+    padding: 12, borderRadius: 12,
   },
-  selector: { 
-    margin: 16, 
-    backgroundColor: '#1B1B1D', 
-    borderRadius: 12, 
-    paddingVertical: 12, 
-    paddingHorizontal: 16, 
-    flexDirection: 'row', 
-    justifyContent: 'space-between' 
+  searchInput: {
+    flex: 1, marginLeft: 12, color: COLORS.text, fontSize: 16,
   },
-  selectorTxt: { 
-    color: '#BEBEC2' 
-  }, 
-  chev: { 
-    color: '#BEBEC2' 
+  list: { paddingHorizontal: 16 },
+  card: {
+    flex: 1, margin: 8, backgroundColor: '#1A1A1A',
+    borderRadius: 12, overflow: 'hidden',
   },
-  card: { 
-    marginHorizontal: 16, 
-    backgroundColor: '#111', 
-    borderRadius: 16, 
-    overflow: 'hidden', 
-    paddingBottom: 16 
+  image: { width: '100%', height: 180, resizeMode: 'cover' },
+  cardTitle: {
+    color: COLORS.text, fontFamily: FONTS.body,
+    fontSize: 14, padding: 8,
   },
-  poster: { 
-    width: '100%', 
-    height: 260 
-  },
-  ribbon: { 
-    position: 'absolute', 
-    top: 10, 
-    left: 10, 
-    backgroundColor: COLORS.cyan, 
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
-    borderRadius: 10 
-  },
-  ribbonTxt: { 
-    color: '#000', 
-    fontWeight: '900' 
-  },
-  score: { 
-    color: '#00FCEB', 
-    fontSize: 28, 
-    fontWeight: '900', 
-    textAlign: 'center', 
-    marginTop: 12 
-  },
-  cardTitle: { 
-    color: COLORS.text, 
-    fontSize: SIZES.h2, 
-    textAlign: 'center', 
-    marginTop: 6, 
-    fontFamily: FONTS.title 
-  }
 });
