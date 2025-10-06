@@ -30,7 +30,7 @@ export default function Home({ navigation }: any) {
     if (!text.trim()) return fetchList();
     setSearching(true);
     const res = await ApiService.getAnimeList(); // replace with search endpoint if exists
-    setList(res.anime.filter(a => a.title.toLowerCase().includes(text.toLowerCase())));
+    setList(res.anime.filter(( a : any) => a.title.toLowerCase().includes(text.toLowerCase())));
     setSearching(false);
   };
 

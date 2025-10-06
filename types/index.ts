@@ -16,7 +16,10 @@ export interface Anime {
   episodes: Episode[];
 }
 
+// Fix: Include Splash and Auth in RootStackParamList
 export type RootStackParamList = {
+  Splash: undefined;
+  Auth: undefined;
   UserAuth: undefined;
   UserMain: undefined;
   AdminLogin: undefined;
