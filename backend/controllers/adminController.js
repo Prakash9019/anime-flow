@@ -50,3 +50,58 @@ exports.createEmployee = async (req, res) => {
   await emp.save();
   res.json(emp);
 };
+
+
+exports.syncEpisodesFromJikan = async (req, res) => {
+  try {
+    const anime = await Anime.findById(req.params.id);
+    if (!anime || !anime.malId) {
+      return res.status(404).json({ message: 'Anime not found or missing MAL ID' });
+    }
+
+    const jikanEpisodes = await jikanService.getAnimeEpisodes(anime.malId);
+    let count = 0;
+
+    for (const ep of jikanEpisodes) {
+      const exists = await Episode.findOne({ anime: anime._id, number: ep.mal_id });
+      if (!exists) {
+        const newEp = new Episode({
+          anime: anime._id,
+          number: ep.mal_id,
+          title: ep.title || `Episode ${ep.mal_id}`,
+          synopsis: ep.synopsis,
+          airDate: ep.aired ? new Date(ep.aired) : undefined,
+          duration: ep.duration,
+        });
+        await newEp.save();
+        anime.episodes.push(newEp._id);
+        count++;
+      }
+    }
+    await anime.save();
+    res.json({ message: `Synced ${count} episodes`, total: count });
+  } catch (error) {
+    res.status(500).json({ message: 'Error syncing episodes', error: error.message });
+  }
+};
+
+// backend/controllers/adminController.js
+exports.getStats = async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const Rating = require('../models/Rating');
+    const Download = require('../models/Download'); // assume you track downloads
+
+    const userLogins = await User.countDocuments(); 
+    const ratingsSubmitted = await Rating.countDocuments();
+    const userDownloads = await Download.countDocuments();
+
+    res.json({
+      userLogins,
+      ratingsSubmitted,
+      userDownloads,
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch stats' });
+  }
+};

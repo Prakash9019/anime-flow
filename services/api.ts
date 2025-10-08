@@ -111,18 +111,29 @@
 // export default new ApiService();
 
 // services/api.ts
+// services/api.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'http://192.168.1.100:5000/api'; // Replace with your backend IP
+const API_BASE_URL = 'https://anime-backend-817384216349.asia-south1.run.app/api';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  isAdmin?: boolean;
+}
 
 class ApiService {
   private token: string | null = null;
+  public baseURL = API_BASE_URL; // Make baseURL public
 
   async init() {
     this.token = await AsyncStorage.getItem('token');
   }
 
-  private async getAuthHeaders(): Promise<Record<string, string>> {
+  // Make getAuthHeaders public
+  public async getAuthHeaders(): Promise<Record<string, string>> {
     const token = this.token || await AsyncStorage.getItem('token');
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
@@ -189,7 +200,6 @@ class ApiService {
   async getAnimeList(params?: any) {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
     const response = await fetch(`${API_BASE_URL}/anime${queryString}`);
-    console.log(response.json());
     return response.json();
   }
 

@@ -12,7 +12,7 @@ export default function Logo({ size = 60, tint = COLORS.cyan }: LogoProps) {
   return (
     <View style={[styles.container, { width: size + 16, height: size + 16 }]}>
       <Image
-        source={require('../../assets/images/logo.png')}
+        source={require('../../assets/images/logo.jpg')}
         style={[styles.image, { width: size, height: size, tintColor: tint }]}
       />
     </View>

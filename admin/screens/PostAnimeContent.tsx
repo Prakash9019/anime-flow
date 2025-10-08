@@ -1,95 +1,166 @@
-// screens/PostAnimeContent.tsx
+// admin/screens/PostAnimeContent.tsx
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AdminHeader from '../components/AdminHeader';
-import FormInput from '../components/FormInput';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS, FONTS } from '../../theme';
+import ApiService from '../../services/api';
 
-export default function PostAnimeContent() {
-  const [selectedMonth, setSelectedMonth] = useState('OCTOBER');
-  const [animeTitle, setAnimeTitle] = useState('');
-  const [seasons, setSeasons] = useState('2');
-  const [episodes, setEpisodes] = useState('');
-  const [selectedSeason, setSelectedSeason] = useState(1);
+export default function PostAnimeContent(): React.ReactElement {
+  const navigation = useNavigation();
+  const [formData, setFormData] = useState({
+    title: '',
+    titleEnglish: '',
+    synopsis: '',
+    poster: '',
+    type: 'TV',
+    status: 'Airing',
+    genres: '',
+    studios: '',
+    source: '',
+    numEpisodes: '',
+  });
+  const [loading, setLoading] = useState(false);
 
-  const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
-                 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+  const handleSubmit = async () => {
+    if (!formData.title.trim()) {
+      Alert.alert('Error', 'Title is required');
+      return;
+    }
 
-  const renderPosterGrid = () => {
-    const posters = Array.from({ length: 13 }, (_, i) => i + 1);
-    
-    return (
-      <View style={styles.posterGrid}>
-        {posters.map((index) => (
-          <View key={index} style={styles.posterItem}>
-            {index <= 12 ? (
-              <Image 
-                source={require('../assets/images/sample-poster.jpg')} 
-                style={styles.poster}
-              />
-            ) : (
-              <TouchableOpacity style={styles.addPoster}>
-                <Text style={styles.addIcon}>+</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        ))}
-      </View>
-    );
+    setLoading(true);
+    try {
+      const animeData = {
+        ...formData,
+        genres: formData.genres.split(',').map(g => g.trim()),
+        studios: formData.studios.split(',').map(s => s.trim()),
+        numEpisodes: parseInt(formData.numEpisodes) || 0,
+      };
+
+      await ApiService.createAnime(animeData);
+      Alert.alert('Success', 'Anime posted successfully', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to post anime');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <AdminHeader title="Post Anime Content" showBack />
-      
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" color={COLORS.text} size={24} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Post Anime Content</Text>
+      </View>
+
       <ScrollView style={styles.content}>
-        <FormInput
-          label="Select Month"
-          value={selectedMonth}
-          dropdown
-          options={months}
-          onSelect={setSelectedMonth}
-        />
+        <View style={styles.form}>
+          <Text style={styles.label}>Title *</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.title}
+            onChangeText={(text) => setFormData({...formData, title: text})}
+            placeholder="Enter anime title"
+            placeholderTextColor="#666"
+          />
 
-        <FormInput
-          label="Title of the Anime"
-          placeholder="Enter Anime Title"
-          value={animeTitle}
-          onChangeText={setAnimeTitle}
-        />
+          <Text style={styles.label}>English Title</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.titleEnglish}
+            onChangeText={(text) => setFormData({...formData, titleEnglish: text})}
+            placeholder="Enter English title"
+            placeholderTextColor="#666"
+          />
 
-        <FormInput
-          label="No of Seasons"
-          value={seasons}
-          dropdown
-          options={['1', '2', '3', '4', '5']}
-          onSelect={setSeasons}
-        />
+          <Text style={styles.label}>Synopsis</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={formData.synopsis}
+            onChangeText={(text) => setFormData({...formData, synopsis: text})}
+            placeholder="Enter synopsis"
+            placeholderTextColor="#666"
+            multiline
+            numberOfLines={4}
+          />
 
-        <FormInput
-          label="Episode Count"
-          placeholder="Write using commas (e.g., 13, 15)"
-          value={episodes}
-          onChangeText={setEpisodes}
-        />
+          <Text style={styles.label}>Poster URL</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.poster}
+            onChangeText={(text) => setFormData({...formData, poster: text})}
+            placeholder="Enter poster URL"
+            placeholderTextColor="#666"
+          />
 
-        <View style={styles.posterSection}>
-          <Text style={styles.sectionTitle}>Add Episode Posters</Text>
-          
-          <View style={styles.seasonTabs}>
-            <TouchableOpacity 
-              style={[styles.seasonTab, selectedSeason === 1 && styles.activeTab]}
-              onPress={() => setSelectedSeason(1)}
-            >
-              <Text style={[styles.tabText, selectedSeason === 1 && styles.activeTabText]}>
-                SEASON 1
-              </Text>
-            </TouchableOpacity>
-            <Text style={styles.posterCount}>13 Posters Added</Text>
-          </View>
+          <Text style={styles.label}>Type</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.type}
+            onChangeText={(text) => setFormData({...formData, type: text})}
+            placeholder="TV, Movie, OVA, etc."
+            placeholderTextColor="#666"
+          />
 
-          {renderPosterGrid()}
+          <Text style={styles.label}>Status</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.status}
+            onChangeText={(text) => setFormData({...formData, status: text})}
+            placeholder="Airing, Completed, Upcoming"
+            placeholderTextColor="#666"
+          />
+
+          <Text style={styles.label}>Genres (comma separated)</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.genres}
+            onChangeText={(text) => setFormData({...formData, genres: text})}
+            placeholder="Action, Adventure, Drama"
+            placeholderTextColor="#666"
+          />
+
+          <Text style={styles.label}>Studios (comma separated)</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.studios}
+            onChangeText={(text) => setFormData({...formData, studios: text})}
+            placeholder="Studio A, Studio B"
+            placeholderTextColor="#666"
+          />
+
+          <Text style={styles.label}>Number of Episodes</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.numEpisodes}
+            onChangeText={(text) => setFormData({...formData, numEpisodes: text})}
+            placeholder="24"
+            placeholderTextColor="#666"
+            keyboardType="numeric"
+          />
+
+          <TouchableOpacity
+            style={[styles.submitButton, { opacity: loading ? 0.7 : 1 }]}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            <Text style={styles.submitText}>
+              {loading ? 'Posting...' : 'POST ANIME'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -97,76 +168,51 @@ export default function PostAnimeContent() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.black,
-  },
-  content: {
-    flex: 1,
+  container: { flex: 1, backgroundColor: COLORS.black },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
   },
-  posterSection: {
-    marginTop: 30,
-  },
-  sectionTitle: {
-    color: COLORS.cyan,
+  title: {
+    color: COLORS.text,
     fontSize: 18,
     fontFamily: FONTS.title,
-    marginBottom: 20,
+    marginLeft: 16,
   },
-  seasonTabs: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  seasonTab: {
-    backgroundColor: '#333',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  activeTab: {
-    backgroundColor: COLORS.cyan,
-  },
-  tabText: {
-    color: COLORS.text,
-    fontWeight: 'bold',
-  },
-  activeTabText: {
-    color: COLORS.black,
-  },
-  posterCount: {
-    color: '#999',
+  content: { flex: 1 },
+  form: { padding: 20 },
+  label: {
+    color: COLORS.cyan,
     fontSize: 14,
+    fontFamily: FONTS.body,
+    marginBottom: 8,
+    marginTop: 16,
   },
-  posterGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  input: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 8,
+    padding: 12,
+    color: COLORS.text,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#333',
   },
-  posterItem: {
-    width: '18%',
-    aspectRatio: 0.7,
-    marginBottom: 10,
-  },
-  poster: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 6,
-  },
-  addPoster: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 6,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#555',
-    justifyContent: 'center',
+  textArea: { height: 100, textAlignVertical: 'top' },
+  submitButton: {
+    backgroundColor: COLORS.cyan,
+    borderRadius: 8,
+    padding: 16,
     alignItems: 'center',
+    marginTop: 24,
   },
-  addIcon: {
-    color: '#555',
-    fontSize: 24,
+  submitText: {
+    color: COLORS.black,
+    fontSize: 16,
+    fontFamily: FONTS.title,
+    fontWeight: 'bold',
   },
 });

@@ -1,6 +1,5 @@
-// admin/screens/EditContent.tsx
-
-import React, { useState } from 'react';
+// admin/screens/EditContent.tsx (updated)
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,56 +9,65 @@ import {
   FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AdminHeader from '../components/AdminHeader';
-import { COLORS, FONTS } from '../../theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AdminParamList } from '../navigation/AdminStack';
-
-type EditNavProp = NativeStackNavigationProp<AdminParamList, 'EditContent'>;
+import { COLORS, FONTS } from '../../theme';
+import ApiService from '../../services/api';
 
 const seasons = ['WINTER', 'SPRING', 'SUMMER', 'FALL'];
-const shows = [
-  'Solo Levelling',
-  'Naruto',
-  'Demon’s Slayer',
-  'Attack on Titan',
-  'One Piece',
-  'Death Note',
-  'Hunter X Hunter',
-  'Dragon Ball Z',
-];
 
 export default function EditContent(): React.ReactElement {
-  const navigation = useNavigation<EditNavProp>();
+  const navigation = useNavigation();
   const [season, setSeason] = useState('WINTER');
+  const [animeList, setAnimeList] = useState([]);
+
+  useEffect(() => {
+    fetchAnimeList();
+  }, []);
+
+  const fetchAnimeList = async () => {
+    try {
+      const response = await ApiService.getAnimeList();
+      setAnimeList(response.anime || []);
+    } catch (error) {
+      console.error('Error fetching anime:', error);
+    }
+  };
+
+  const renderItem = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={styles.item}
+      onPress={() => {
+        // Navigate to edit detail or handle edit
+        console.log('Edit anime:', item.title);
+      }}
+    >
+      <Text style={styles.itemText}>{item.title}</Text>
+      <Ionicons name="chevron-forward" color="#999" size={18} />
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <AdminHeader title="Edit Existing Anime Content" showBack />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" color={COLORS.text} size={24} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Edit Existing Anime Content</Text>
+      </View>
+
       <ScrollView style={styles.content}>
-        {/* Season dropdown */}
         <TouchableOpacity style={styles.dropdown}>
           <Text style={styles.dropdownText}>{season}</Text>
-          <Text style={styles.chevron}>▾</Text>
+          <Ionicons name="chevron-down" color="#999" size={18} />
         </TouchableOpacity>
 
-        {/* List of shows */}
         <FlatList
-          data={shows}
-          keyExtractor={(item) => item}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.item}
-              onPress={() =>
-                navigation.navigate('Dashboard') /* or navigate into detail flow */
-              }
-            >
-              <Text style={styles.itemText}>{item}</Text>
-              <Text style={styles.itemIcon}>▸</Text>
-            </TouchableOpacity>
-          )}
-          ItemSeparatorComponent={() => <View style={styles.sep} />}
+          data={animeList}
+          renderItem={renderItem}
+          keyExtractor={item => item._id}
+          scrollEnabled={false}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       </ScrollView>
     </SafeAreaView>
@@ -68,6 +76,20 @@ export default function EditContent(): React.ReactElement {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.black },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  title: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontFamily: FONTS.title,
+    marginLeft: 16,
+  },
   content: { padding: 20 },
   dropdown: {
     backgroundColor: '#222',
@@ -78,15 +100,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   dropdownText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: 16 },
-  chevron: { color: '#999', fontSize: 18 },
   item: {
     backgroundColor: '#1A1A1A',
     padding: 20,
     borderRadius: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  itemText: { color: COLORS.text, fontFamily: FONTS.body },
-  itemIcon: { color: '#999', fontSize: 18 },
-  sep: { height: 12 },
+  itemText: { color: COLORS.text, fontFamily: FONTS.body, fontSize: 16 },
+  separator: { height: 12 },
 });

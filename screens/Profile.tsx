@@ -1,3 +1,4 @@
+// screens/Profile.tsx
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -12,40 +13,75 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SIZES } from '../theme';
+import { useAuth } from '../hooks/useAuth';
 import ApiService from '../services/api';
 import StarRating from '../components/StarRating';
 
+interface UserRating {
+  _id: string;
+  anime: {
+    _id: string;
+    title: string;
+    poster: string;
+  };
+  rating: number;
+  createdAt: string;
+}
+
 export default function Profile(): React.ReactElement {
-  const [list, setList] = useState<any[]>([]);
+  const { user, logout } = useAuth();
+  const [userRatings, setUserRatings] = useState<UserRating[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (user) {
+      fetchUserRatings();
+    }
+  }, [user]);
+
+  const fetchUserRatings = async () => {
     setLoading(true);
-    ApiService.init().then(async () => {
-      const res = await ApiService.getAnimeList(); // user-specific list from backend
-      setList(res.anime);
+    try {
+      // You'll need to create this endpoint in your backend
+      const response = await fetch(`${ApiService.baseURL}/user/ratings`, {
+        headers: await ApiService.getAuthHeaders(),
+      });
+      const data = await response.json();
+      setUserRatings(data.ratings || []);
+    } catch (error) {
+      console.error('Error fetching user ratings:', error);
+    } finally {
       setLoading(false);
-    });
-  }, []);
+    }
+  };
 
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator color={COLORS.cyan} size="large" />
-      </View>
-    );
-  }
+  const handleLogout = async () => {
+    await logout();
+    // Navigation will be handled automatically by auth state change
+  };
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.card}>
-      <Image source={{ uri: item.poster }} style={styles.poster} />
-      <View style={styles.cardOverlay}>
-        <Text style={styles.cardSeason}>{item.seasonLabel || ''}</Text>
-        <Text style={styles.cardTitle}>{item.title}</Text>
-        <StarRating rating={item.userRating || 0} />
+  const renderRatingItem = ({ item }: { item: UserRating }) => (
+    <View style={styles.ratingCard}>
+      <Image source={{ uri: item.anime.poster }} style={styles.ratingPoster} />
+      <View style={styles.ratingInfo}>
+        <Text style={styles.ratingTitle} numberOfLines={2}>
+          {item.anime.title}
+        </Text>
+        <StarRating rating={item.rating} />
+        <Text style={styles.ratingDate}>
+          {new Date(item.createdAt).toLocaleDateString()}
+        </Text>
       </View>
     </View>
   );
+
+  if (!user) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.errorText}>Please sign in to view profile</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -58,31 +94,54 @@ export default function Profile(): React.ReactElement {
           <View style={styles.overlay} />
           <View style={styles.profileInfo}>
             <View style={styles.avatar}>
-              <Ionicons name="person" color="#666" size={40} />
+              {user.avatar ? (
+                <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+              ) : (
+                <Ionicons name="person" color="#666" size={40} />
+              )}
             </View>
-            <Text style={styles.name}>{/* Replace with user name */}Praneeth Kumar</Text>
+            <Text style={styles.name}>{user.name}</Text>
+            <Text style={styles.email}>{user.email}</Text>
           </View>
+          
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" color={COLORS.text} size={20} />
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
         </ImageBackground>
       </View>
 
-      {/* My Ratings */}
+      {/* My Ratings Section */}
       <View style={styles.content}>
-        <Text style={styles.sectionTitle}>My Ratings</Text>
-        <FlatList
-          data={list}
-          renderItem={renderItem}
-          keyExtractor={item => item._id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.grid}
-        />
-        <TouchableOpacity style={styles.cardEmpty}>
-          <Ionicons name="add" size={32} color="#666" />
-          <Text style={styles.emptyText}>RATE NEW EPISODE</Text>
-        </TouchableOpacity>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>My Ratings</Text>
+          <Text style={styles.ratingCount}>
+            {userRatings.length} {userRatings.length === 1 ? 'Rating' : 'Ratings'}
+          </Text>
+        </View>
+
+        {loading ? (
+          <ActivityIndicator color={COLORS.cyan} size="large" style={styles.loader} />
+        ) : userRatings.length > 0 ? (
+          <FlatList
+            data={userRatings}
+            renderItem={renderRatingItem}
+            keyExtractor={item => item._id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.ratingsList}
+          />
+        ) : (
+          <View style={styles.emptyState}>
+            <Ionicons name="star-outline" color="#666" size={48} />
+            <Text style={styles.emptyText}>No ratings yet</Text>
+            <Text style={styles.emptySubtext}>
+              Start rating anime to see them here
+            </Text>
+          </View>
+        )}
       </View>
 
-      {/* Tabs */}
+      {/* Bottom tabs */}
       <View style={styles.tabBar}>
         <View style={styles.indicator} />
         <TouchableOpacity style={styles.tab}>
@@ -102,53 +161,79 @@ export default function Profile(): React.ReactElement {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.black },
   centered: { justifyContent: 'center', alignItems: 'center' },
-  header: { height: 200 },
-  bgImage: { flex: 1, justifyContent: 'flex-end' },
+  header: { height: 220 },
+  bgImage: { flex: 1, justifyContent: 'space-between' },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.7)' },
-  profileInfo: { flexDirection: 'row', alignItems: 'center', padding: 16 },
+  profileInfo: { alignItems: 'center', padding: 20, marginTop: 20 },
   avatar: {
-    width: 64, height: 64, borderRadius: 32,
+    width: 80, height: 80, borderRadius: 40,
     backgroundColor: '#333', alignItems: 'center',
-    justifyContent: 'center', marginRight: 12,
-    borderWidth: 2, borderColor: '#444',
+    justifyContent: 'center', marginBottom: 12,
+    borderWidth: 3, borderColor: COLORS.cyan,
   },
+  avatarImage: { width: '100%', height: '100%', borderRadius: 40 },
   name: {
-    color: COLORS.text, fontSize: 20,
-    fontFamily: FONTS.title, fontWeight: 'bold',
+    color: COLORS.text, fontSize: 22,
+    fontFamily: FONTS.title, fontWeight: 'bold', marginBottom: 4,
   },
-  content: { padding: 16 },
+  email: {
+    color: '#999', fontSize: 14,
+    fontFamily: FONTS.body,
+  },
+  logoutButton: {
+    flexDirection: 'row', alignItems: 'center',
+    alignSelf: 'flex-end', margin: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 20,
+  },
+  logoutText: {
+    color: COLORS.text, marginLeft: 8,
+    fontSize: 14, fontFamily: FONTS.body,
+  },
+  content: { flex: 1, padding: 20 },
+  sectionHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 16,
+  },
   sectionTitle: {
     color: COLORS.text, fontSize: 24,
-    fontFamily: FONTS.title, marginBottom: 16,
-  },
-  grid: { paddingRight: 16 },
-  card: {
-    width: 140, marginRight: 16,
-    backgroundColor: '#1A1A1A', borderRadius: 12,
-    overflow: 'hidden',
-  },
-  poster: { width: '100%', height: 180, resizeMode: 'cover' },
-  cardOverlay: {
-    padding: 8, backgroundColor: 'rgba(0,0,0,0.8)',
-  },
-  cardSeason: {
-    color: COLORS.cyan, fontSize: 12,
-    fontFamily: FONTS.body, marginBottom: 4,
-  },
-  cardTitle: {
-    color: COLORS.text, fontSize: 14,
     fontFamily: FONTS.title, fontWeight: 'bold',
-    marginBottom: 6,
   },
-  cardEmpty: {
-    width: 140, height: 200, borderRadius: 12,
-    borderWidth: 2, borderColor: '#444', borderStyle: 'dashed',
-    justifyContent: 'center', alignItems: 'center',
+  ratingCount: {
+    color: COLORS.cyan, fontSize: 14,
+    fontFamily: FONTS.body,
+  },
+  ratingsList: { paddingBottom: 20 },
+  ratingCard: {
+    flexDirection: 'row', backgroundColor: '#1A1A1A',
+    borderRadius: 12, padding: 12, marginBottom: 12,
+  },
+  ratingPoster: { width: 60, height: 80, borderRadius: 8, marginRight: 12 },
+  ratingInfo: { flex: 1, justifyContent: 'space-between' },
+  ratingTitle: {
+    color: COLORS.text, fontSize: 16,
+    fontFamily: FONTS.body, fontWeight: 'bold',
+  },
+  ratingDate: {
+    color: '#666', fontSize: 12,
+    fontFamily: FONTS.body,
+  },
+  emptyState: {
+    flex: 1, justifyContent: 'center', alignItems: 'center',
   },
   emptyText: {
-    color: '#666', fontSize: 12,
-    fontFamily: FONTS.body, marginTop: 8,
-    textAlign: 'center',
+    color: COLORS.text, fontSize: 18,
+    fontFamily: FONTS.title, marginTop: 16,
+  },
+  emptySubtext: {
+    color: '#666', fontSize: 14,
+    fontFamily: FONTS.body, marginTop: 8, textAlign: 'center',
+  },
+  loader: { marginTop: 40 },
+  errorText: {
+    color: COLORS.text, fontSize: 16,
+    fontFamily: FONTS.body, textAlign: 'center',
   },
   tabBar: {
     flexDirection: 'row', height: 60,

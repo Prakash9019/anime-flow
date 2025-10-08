@@ -13,7 +13,7 @@ export default function Logo({ size = 84, tint = '#00FCEB', box = false }: LogoP
     return (
       <View style={[styles.box, { width: size + 32, height: size + 20, backgroundColor: tint }]}>
         <Image 
-          source={require('../assets/images/logo.png')} 
+          source={require('../assets/images/logo.jpg')} 
           style={[styles.img, { width: size, height: size, tintColor: '#000' }]} 
         />
       </View>
@@ -21,7 +21,7 @@ export default function Logo({ size = 84, tint = '#00FCEB', box = false }: LogoP
   }
   return (
     <Image 
-      source={require('../assets/images/logo.png')} 
+      source={require('../assets/images/logo.jpg')} 
       style={[styles.img, { width: size, height: size, tintColor: tint }]} 
     />
   );
