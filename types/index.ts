@@ -10,7 +10,7 @@ export interface Episode {
 }
 
 export interface Anime {
-  id: string;
+  _id: string;
   title: string;
   poster: any;
   episodes: Episode[];

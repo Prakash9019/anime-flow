@@ -39,21 +39,28 @@ export default function Profile(): React.ReactElement {
     }
   }, [user]);
 
-  const fetchUserRatings = async () => {
-    setLoading(true);
-    try {
-      // You'll need to create this endpoint in your backend
-      const response = await fetch(`${ApiService.baseURL}/user/ratings`, {
-        headers: await ApiService.getAuthHeaders(),
-      });
-      const data = await response.json();
-      setUserRatings(data.ratings || []);
-    } catch (error) {
-      console.error('Error fetching user ratings:', error);
-    } finally {
-      setLoading(false);
+  // screens/Profile.tsx (update fetchUserRatings function)
+const fetchUserRatings = async () => {
+  setLoading(true);
+  try {
+    const response = await fetch(`${ApiService.baseURL}/user/ratings`, {
+      headers: await ApiService.getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-  };
+    
+    const data = await response.json();
+    setUserRatings(data.ratings || []);
+  } catch (error) {
+    console.error('Error fetching user ratings:', error);
+    // You could show an alert or toast here
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleLogout = async () => {
     await logout();

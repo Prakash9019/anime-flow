@@ -8,13 +8,13 @@ export function useMalList(status?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
-  useEffect(() => {
-    MalService.init()
-      .then(() => MalService.getUserList(status))
-      .then(setList)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [status]);
+  // useEffect(() => {
+  //   MalService.init()
+  //     .then(() => MalService.getUserList(status))
+  //     .then(setList)
+  //     .catch(e => setError(e.message))
+  //     .finally(() => setLoading(false));
+  // }, [status]);
 
   return { list, loading, error };
 }

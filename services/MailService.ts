@@ -56,25 +56,25 @@ class MalService {
     await AsyncStorage.setItem('mal_refresh', data.refresh_token);
   }
 
-  private async fetchWithAuth(url: string) {
-    if (!this.token) throw new Error('Not authenticated');
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${this.token}` },
-    });
-    if (res.status === 401) {
-      await this.refreshToken();
-      return this.fetchWithAuth(url);
-    }
-    return res;
-  }
+  // private async fetchWithAuth(url: string) {
+  //   if (!this.token) throw new Error('Not authenticated');
+  //   const res = await fetch(url, {
+  //     headers: { Authorization: `Bearer ${this.token}` },
+  //   });
+  //   if (res.status === 401) {
+  //     await this.refreshToken();
+  //     return this.fetchWithAuth(url);
+  //   }
+  //   return res;
+  // }
 
-  async getUserList(status?: string, limit = 100): Promise<AnimeNode[]> {
-    let url = `${BASE}/users/@me/animelist?limit=${limit}&fields=id,title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,num_episodes,my_list_status`;
-    if (status) url += `&status=${status}`;
-    const res = await this.fetchWithAuth(url);
-    const data: UserAnimeListResponse = await res.json();
-    return data.data.map(item => item.node);
-  }
+  // async getUserList(status?: string, limit = 100): Promise<AnimeNode[]> {
+  //   let url = `${BASE}/users/@me/animelist?limit=${limit}&fields=id,title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,num_episodes,my_list_status`;
+  //   if (status) url += `&status=${status}`;
+  //   const res = await this.fetchWithAuth(url);
+  //   const data: UserAnimeListResponse = await res.json();
+  //   return data.data.map(item => item.node);
+  // }
 }
 
 export default new MalService();

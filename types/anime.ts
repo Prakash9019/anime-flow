@@ -1,6 +1,6 @@
 // types/anime.ts
 export interface AnimeNode {
-  id: number;
+  _id: number;
   title: string;
   main_picture?: { medium: string; large: string };
   alternative_titles?: { synonyms: string[]; en?: string; ja?: string };

@@ -37,9 +37,9 @@ export default function Detail(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [selectedEpisode, setSelectedEpisode] = useState<string>('');
-
-  const animeId = route.params.anime.id;
-
+  console.log('Route params:', route.params.anime);
+  const animeId  = route.params.anime._id;
+  console.log('Anime ID:', animeId);
   useEffect(() => {
     loadAnimeDetails();
   }, [animeId]);
@@ -47,6 +47,7 @@ export default function Detail(): React.ReactElement {
   const loadAnimeDetails = async () => {
     try {
       const data = await ApiService.getAnimeById(animeId);
+      console.log('Fetched Anime Data:', data);
       setAnimeData(data);
       setEpisodes(data.episodes || []);
     } catch (error) {

@@ -41,6 +41,7 @@ export default function Home({ navigation }: any) {
         navigation.navigate('Detail', { anime: item })
       }
     >
+      {/* {console.log(item)} */}
       <Image source={{ uri: item.poster }} style={styles.image} />
       <Text style={styles.cardTitle}>{item.title}</Text>
     </TouchableOpacity>
