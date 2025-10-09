@@ -11,7 +11,7 @@ interface LogoProps {
 export default function Logo({ size = 84, tint = '#00FCEB', box = false }: LogoProps): React.ReactElement {
   if (box) {
     return (
-      <View style={[styles.box, { width: size + 32, height: size + 20, backgroundColor: tint }]}>
+      <View style={[styles.box, { width: size + 32, height: size + 20 }]}>
         <Image 
           source={require('../assets/images/logo.jpg')} 
           style={[styles.img, { width: size, height: size, tintColor: '#000' }]} 
@@ -22,7 +22,7 @@ export default function Logo({ size = 84, tint = '#00FCEB', box = false }: LogoP
   return (
     <Image 
       source={require('../assets/images/logo.jpg')} 
-      style={[styles.img, { width: size, height: size, tintColor: tint }]} 
+      style={[styles.img, { width: size, height: size }]} 
     />
   );
 }

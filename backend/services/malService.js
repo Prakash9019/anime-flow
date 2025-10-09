@@ -4,7 +4,80 @@ const axios = require('axios');
 class MALService {
   constructor() {
     this.baseURL = 'https://api.myanimelist.net/v2';
-    this.clientId = process.env.MAL_CLIENT_ID;
+    this.clientId = "740ae26e92aa12b0264da163d2277d73";
+  }
+  // Get anime ranking list (top/popular etc.)
+  async getAnimeRanking({ ranking_type = 'all', limit = 50, offset = 0 } = {}) {
+    try {
+      const response = await axios.get(`${this.baseURL}/anime/ranking`, {
+        params: {
+          ranking_type,
+          limit,
+          offset,
+          fields: [
+            'id,title,main_picture,alternative_titles,start_date,end_date,synopsis',
+            'mean,rank,popularity,num_episodes,start_season,broadcast',
+            'source,average_episode_duration,rating,genres,studios'
+          ].join(',')
+        },
+        headers: {
+          'X-MAL-CLIENT-ID': this.clientId
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('MAL API Error:', error.response?.data || error.message);
+      throw new Error('Failed to fetch anime ranking from MAL');
+    }
+  }
+
+  // Get single anime details by MAL ID
+  async getAnimeDetails(id) {
+    try {
+      const response = await axios.get(`${this.baseURL}/anime/${id}`, {
+        params: {
+          fields: [
+            'id,title,main_picture,alternative_titles,start_date,end_date,synopsis',
+            'mean,rank,popularity,num_episodes,start_season,broadcast',
+            'source,average_episode_duration,rating,genres,studios',
+            'background,related_anime,related_manga,recommendations'
+          ].join(',')
+        },
+        headers: {
+          'X-MAL-CLIENT-ID': this.clientId
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('MAL API Error:', error.response?.data || error.message);
+      throw new Error('Failed to fetch anime details from MAL');
+    }
+  }
+
+  // Search anime by query string
+  async searchAnime(query, limit = 20) {
+    try {
+      const response = await axios.get(`${this.baseURL}/anime`, {
+        params: {
+          q: query,
+          limit,
+          fields: [
+            'id,title,main_picture,alternative_titles,start_date,end_date,synopsis',
+            'mean,rank,popularity,num_episodes,genres,studios'
+          ].join(',')
+        },
+        headers: {
+          'X-MAL-CLIENT-ID': this.clientId
+        }
+      });
+
+      return response.data.data;
+    } catch (error) {
+      console.error('MAL Search Error:', error.response?.data || error.message);
+      throw new Error('Failed to search anime');
+    }
   }
 
   async getAnimeList(limit = 100, offset = 0) {

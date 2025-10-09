@@ -38,8 +38,8 @@ router.post('/rate', auth, animeController.rateAnime);
 router.post('/rate-episode', auth, animeController.rateEpisode);
 
 // Admin routes (requires auth + admin)
-router.post('/sync-mal', [auth, admin], animeController.syncWithMAL); // Syncs anime + episodes
-router.post('/sync-episodes', [auth, admin], animeController.syncAllEpisodes); // Episodes only
-router.post('/:id/sync-episodes', [auth, admin], animeController.syncEpisodesFromJikan); // Single anime
+router.post('/sync-mal', animeController.syncWithMAL); // Syncs anime + episodes
+router.post('/sync-episodes',  animeController.syncAllEpisodes); // Episodes only
+router.post('/:id/sync-episodes', animeController.syncEpisodesFromJikan); // Single anime
 
 module.exports = router;

@@ -1,4 +1,3 @@
-// backend/services/jikanService.js (NEW FILE)
 const axios = require('axios');
 
 class JikanService {
@@ -12,7 +11,7 @@ class JikanService {
       const response = await axios.get(`${this.baseURL}/anime/${malId}/episodes`);
       return response.data.data || [];
     } catch (error) {
-      console.error('Jikan episodes error:', error);
+      console.error('Jikan episodes error:', error.response?.data || error.message);
       return [];
     }
   }
@@ -23,10 +22,11 @@ class JikanService {
       const response = await axios.get(`${this.baseURL}/anime/${malId}`);
       return response.data.data;
     } catch (error) {
-      console.error('Jikan details error:', error);
+      console.error('Jikan details error:', error.response?.data || error.message);
       return null;
     }
   }
 }
 
+// Export instance
 module.exports = new JikanService();

@@ -5,11 +5,12 @@ const Rating = require('../models/Rating');
 const malService = require('../services/malService');
 const jikanService = require('../services/jikanServices');
 
+// Get anime list with pagination, search, and sorting
 exports.getAnimeList = async (req, res) => {
   try {
-    const { page = 1, limit = 20, search, sort = 'rank' } = req.query;
-    let query = {};
+    const { page = 1, limit = 20, search, sort = 'rating' } = req.query;
 
+    let query = {};
     if (search) {
       query = {
         $or: [
@@ -20,19 +21,19 @@ exports.getAnimeList = async (req, res) => {
     }
 
     const sortOptions = {
+      rating: { averageRating: -1, mean: -1 }, // Descending by rating
       rank: { rank: 1 },
       title: { title: 1 },
-      rating: { averageRating: -1 },
       popularity: { popularity: 1 },
+      newest: { createdAt: -1 },
     };
 
     const anime = await Anime.find(query)
-      .sort(sortOptions[sort] || sortOptions.rank)
+      .sort(sortOptions[sort] || sortOptions.rating)
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .populate('episodes')
       .lean();
-    console.log(anime);
 
     const total = await Anime.countDocuments(query);
 
@@ -47,6 +48,7 @@ exports.getAnimeList = async (req, res) => {
   }
 };
 
+// Get single anime by ID with episodes and ratings
 exports.getAnimeById = async (req, res) => {
   try {
     const anime = await Anime.findById(req.params.id)
@@ -63,6 +65,7 @@ exports.getAnimeById = async (req, res) => {
   }
 };
 
+// Rate an anime
 exports.rateAnime = async (req, res) => {
   try {
     const { animeId, rating, review } = req.body;
@@ -109,6 +112,7 @@ exports.rateAnime = async (req, res) => {
   }
 };
 
+// Rate an episode
 exports.rateEpisode = async (req, res) => {
   try {
     const { episodeId, rating } = req.body;
@@ -154,13 +158,12 @@ exports.rateEpisode = async (req, res) => {
 };
 
 
-
+// Sync anime from MAL API with episodes
 exports.syncWithMAL = async (req, res) => {
   try {
     console.log('Starting MAL sync with episodes...');
     
-    // Fetch top anime from MAL
-    const malData = await malService.getAnimeRanking({ limit: 50 }); // Reduced to 50 to avoid rate limits
+    const malData = await malService.getAnimeRanking({ limit: 50 });
     
     let syncedAnime = 0;
     let syncedEpisodes = 0;
@@ -168,11 +171,9 @@ exports.syncWithMAL = async (req, res) => {
     for (const item of malData.data) {
       const animeData = item.node;
       
-      // Check if anime already exists
       const existingAnime = await Anime.findOne({ malId: animeData.id });
       
       if (!existingAnime) {
-        // Create new anime entry
         const newAnime = new Anime({
           malId: animeData.id,
           title: animeData.title,
@@ -196,14 +197,13 @@ exports.syncWithMAL = async (req, res) => {
         await newAnime.save();
         syncedAnime++;
         
-        // Now sync episodes for this anime using Jikan API
+        // Sync episodes using Jikan API
         try {
-          // Add delay to respect Jikan rate limits (1 request per second)
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Rate limiting
           
           const jikanEpisodes = await jikanService.getAnimeEpisodes(animeData.id);
           
-          for (const ep of jikanEpisodes.slice(0, 25)) { // Limit to first 25 episodes
+          for (const ep of jikanEpisodes.slice(0, 25)) {
             const newEpisode = new Episode({
               anime: newAnime._id,
               number: ep.mal_id || ep.episode,
@@ -223,7 +223,6 @@ exports.syncWithMAL = async (req, res) => {
           
         } catch (episodeError) {
           console.error(`Error syncing episodes for ${animeData.title}:`, episodeError);
-          // Continue with next anime even if episodes fail
         }
       }
     }
@@ -240,84 +239,23 @@ exports.syncWithMAL = async (req, res) => {
   }
 };
 
-
-// backend/controllers/animeController.js (UPDATE)
-exports.getAnimeList = async (req, res) => {
-  try {
-    const { page = 1, limit = 20, search, sort = 'rating' } = req.query; // Default to rating
-
-    let query = {};
-    if (search) {
-      query = {
-        $or: [
-          { title: { $regex: search, $options: 'i' } },
-          { titleEnglish: { $regex: search, $options: 'i' } },
-        ],
-      };
-    }
-
-    const sortOptions = {
-      rating: { averageRating: -1, mean: -1 }, // Descending by rating
-      rank: { rank: 1 },
-      title: { title: 1 },
-      popularity: { popularity: 1 },
-      newest: { createdAt: -1 },
-    };
-
-    const anime = await Anime.find(query)
-      .sort(sortOptions[sort] || sortOptions.rating)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .populate('episodes') // Include episodes
-      .lean();
-
-    const total = await Anime.countDocuments(query);
-
-    res.json({
-      anime,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
-      total,
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-exports.getAnimeById = async (req, res) => {
-  try {
-    const anime = await Anime.findById(req.params.id)
-      .populate('episodes') // Include all episodes
-      .populate('userRatings.user', 'name avatar');
-
-    if (!anime) {
-      return res.status(404).json({ message: 'Anime not found' });
-    }
-
-    res.json(anime);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-// backend/controllers/animeController.js
+// Sync episodes for all existing anime without episodes
 exports.syncAllEpisodes = async (req, res) => {
   try {
     const animeList = await Anime.find({ 
       malId: { $exists: true, $ne: null },
-      episodes: { $size: 0 } // Only sync anime without episodes
-    }).limit(20); // Process 20 anime at a time
+      episodes: { $size: 0 }
+    }).limit(20);
     
     let totalSynced = 0;
     
     for (const anime of animeList) {
       try {
-        // Rate limiting: 1 request per second
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         const jikanEpisodes = await jikanService.getAnimeEpisodes(anime.malId);
         
-        for (const ep of jikanEpisodes.slice(0, 50)) { // Limit episodes
+        for (const ep of jikanEpisodes.slice(0, 50)) {
           const existingEpisode = await Episode.findOne({ 
             anime: anime._id, 
             number: ep.mal_id || ep.episode
@@ -344,7 +282,7 @@ exports.syncAllEpisodes = async (req, res) => {
         
       } catch (error) {
         console.error(`Error syncing episodes for ${anime.title}:`, error);
-        continue; // Skip this anime and continue with next
+        continue;
       }
     }
 
@@ -358,54 +296,7 @@ exports.syncAllEpisodes = async (req, res) => {
   }
 };
 
-
-// // Auto-sync episodes for all anime (admin function)
-// exports.syncAllEpisodes = async (req, res) => {
-//   try {
-//     const animeList = await Anime.find({ malId: { $exists: true, $ne: null } });
-//     let totalSynced = 0;
-
-//     for (const anime of animeList) {
-//       try {
-//         const jikanEpisodes = await jikanService.getAnimeEpisodes(anime.malId);
-        
-//         for (const ep of jikanEpisodes.slice(0, 50)) { // Limit to first 50 episodes
-//           const existingEpisode = await Episode.findOne({ 
-//             anime: anime._id, 
-//             number: ep.mal_id 
-//           });
-
-//           if (!existingEpisode) {
-//             const newEpisode = new Episode({
-//               anime: anime._id,
-//               number: ep.mal_id,
-//               title: ep.title || `Episode ${ep.mal_id}`,
-//               synopsis: ep.synopsis || '',
-//               airDate: ep.aired ? new Date(ep.aired) : null,
-//             });
-
-//             await newEpisode.save();
-//             anime.episodes.push(newEpisode._id);
-//             totalSynced++;
-//           }
-//         }
-        
-//         await anime.save();
-        
-//         // Rate limiting to avoid hitting Jikan API limits
-//         await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
-//       } catch (error) {
-//         console.error(`Error syncing episodes for ${anime.title}:`, error);
-//       }
-//     }
-
-//     res.json({ message: `Synced ${totalSynced} episodes across all anime` });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error syncing episodes', error: error.message });
-//   }
-// };
-
-
+// Sync episodes for a specific anime
 exports.syncEpisodesFromJikan = async (req, res) => {
   try {
     const anime = await Anime.findById(req.params.id);
@@ -417,12 +308,16 @@ exports.syncEpisodesFromJikan = async (req, res) => {
     let count = 0;
 
     for (const ep of jikanEpisodes) {
-      const exists = await Episode.findOne({ anime: anime._id, number: ep.mal_id });
+      const exists = await Episode.findOne({ 
+        anime: anime._id, 
+        number: ep.mal_id || ep.episode 
+      });
+      
       if (!exists) {
         const newEp = new Episode({
           anime: anime._id,
-          number: ep.mal_id,
-          title: ep.title || `Episode ${ep.mal_id}`,
+          number: ep.mal_id || ep.episode,
+          title: ep.title || `Episode ${ep.mal_id || ep.episode}`,
           synopsis: ep.synopsis,
           airDate: ep.aired ? new Date(ep.aired) : undefined,
           duration: ep.duration,
@@ -432,9 +327,47 @@ exports.syncEpisodesFromJikan = async (req, res) => {
         count++;
       }
     }
+    
     await anime.save();
-    res.json({ message: `Synced ${count} episodes`, total: count });
+    res.json({ 
+      message: `Synced ${count} episodes for ${anime.title}`, 
+      total: count 
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error syncing episodes', error: error.message });
   }
 };
+
+// Search anime (optional - if you want search functionality)
+exports.searchAnime = async (req, res) => {
+  try {
+    const { query, limit = 20 } = req.query;
+    if (!query) {
+      return res.status(400).json({ message: 'Search query required' });
+    }
+    
+    const anime = await Anime.find({
+      $or: [
+        { title: { $regex: query, $options: 'i' } },
+        { titleEnglish: { $regex: query, $options: 'i' } },
+        { genres: { $in: [new RegExp(query, 'i')] } }
+      ]
+    }).limit(parseInt(limit));
+    
+    res.json({ results: anime, total: anime.length });
+  } catch (error) {
+    res.status(500).json({ message: 'Search failed', error: error.message });
+  }
+};
+
+module.exports = {
+  getAnimeList: exports.getAnimeList,
+  getAnimeById: exports.getAnimeById,
+  rateAnime: exports.rateAnime,
+  rateEpisode: exports.rateEpisode,
+  syncWithMAL: exports.syncWithMAL,
+  syncAllEpisodes: exports.syncAllEpisodes,
+  syncEpisodesFromJikan: exports.syncEpisodesFromJikan,
+  searchAnime: exports.searchAnime,
+};
+

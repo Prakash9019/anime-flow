@@ -28,7 +28,16 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+          [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosClientId": "554236244715-u7kms8qsntj4079atfttvo2jei5m75rc.apps.googleusercontent.com", 
+          "webClientId": "554236244715-4qpomofhim5vncie4bsaqrl3f9hlr3o7.apps.googleusercontent.com" ,
+
+          "iosUrlScheme": "com.googleusercontent.apps.554236244715-u7kms8qsntj4079atfttvo2jei5m75rc"
+        }
+      ]
     ]
   }
 }

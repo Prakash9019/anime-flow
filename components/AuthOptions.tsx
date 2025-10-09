@@ -28,7 +28,7 @@ type AuthNavProp = NativeStackNavigationProp<RootStackParamList>;
 
 // Configure Google Sign-In
 GoogleSignin.configure({
-  webClientId: '554236244715-b2r76gu3l1c95rna57dptngiqiho17jt.apps.googleusercontent.com', // From Google Console
+  webClientId: '554236244715-4qpomofhim5vncie4bsaqrl3f9hlr3o7.apps.googleusercontent.com', // From Google Console
   offlineAccess: true,
 });
 // Rename to avoid conflict
@@ -53,6 +53,7 @@ export default function AuthOptions({ visible, onClose }: AuthOptionsProps) {
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
+      console.log("hello");
       await GoogleSignin.hasPlayServices();
       const userInfo : any = await GoogleSignin.signIn();
       console.log("hiiii");
