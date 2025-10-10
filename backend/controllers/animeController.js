@@ -112,51 +112,6 @@ exports.rateAnime = async (req, res) => {
   }
 };
 
-// Rate an episode
-exports.rateEpisode = async (req, res) => {
-  try {
-    const { episodeId, rating } = req.body;
-    const userId = req.user.id;
-
-    if (rating < 1 || rating > 10) {
-      return res.status(400).json({ message: 'Rating must be between 1 and 10' });
-    }
-
-    const episode = await Episode.findById(episodeId);
-    if (!episode) {
-      return res.status(404).json({ message: 'Episode not found' });
-    }
-
-    const existingRatingIndex = episode.userRatings.findIndex(
-      r => r.user.toString() === userId
-    );
-
-    if (existingRatingIndex > -1) {
-      episode.userRatings[existingRatingIndex].rating = rating;
-    } else {
-      episode.userRatings.push({ user: userId, rating });
-    }
-
-    // Calculate average
-    const sum = episode.userRatings.reduce((acc, r) => acc + r.rating, 0);
-    episode.averageRating = (sum / episode.userRatings.length).toFixed(1);
-    await episode.save();
-
-    // Save rating record
-    let ratingRecord = await Rating.findOne({ user: userId, episode: episodeId });
-    if (ratingRecord) {
-      ratingRecord.rating = rating;
-    } else {
-      ratingRecord = new Rating({ user: userId, episode: episodeId, rating });
-    }
-    await ratingRecord.save();
-
-    res.json({ message: 'Episode rating saved successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
 
 // Sync anime from MAL API with episodes
 exports.syncWithMAL = async (req, res) => {
@@ -359,6 +314,67 @@ exports.searchAnime = async (req, res) => {
     res.status(500).json({ message: 'Search failed', error: error.message });
   }
 };
+// backend/controllers/animeController.js (update rateEpisode function)
+exports.rateEpisode = async (req, res) => {
+  try {
+    const { episodeId, rating } = req.body;
+    const userId = req.user.id;
+
+    if (rating < 1 || rating > 10) {
+      return res.status(400).json({ message: 'Rating must be between 1 and 10' });
+    }
+
+    const episode = await Episode.findById(episodeId).populate('anime');
+    if (!episode) {
+      return res.status(404).json({ message: 'Episode not found' });
+    }
+
+    const existingRatingIndex = episode.userRatings.findIndex(
+      r => r.user.toString() === userId
+    );
+
+    if (existingRatingIndex > -1) {
+      episode.userRatings[existingRatingIndex].rating = rating;
+    } else {
+      episode.userRatings.push({ user: userId, rating });
+    }
+
+    // Calculate episode average
+    const sum = episode.userRatings.reduce((acc, r) => acc + r.rating, 0);
+    episode.averageRating = sum / episode.userRatings.length;
+    await episode.save();
+
+    // Update anime overall rating based on all episodes
+    const anime = await Anime.findById(episode.anime._id).populate('episodes');
+    const episodeRatings = anime.episodes
+      .filter(ep => ep.averageRating > 0)
+      .map(ep => ep.averageRating);
+    
+    if (episodeRatings.length > 0) {
+      const overallRating = episodeRatings.reduce((a, b) => a + b, 0) / episodeRatings.length;
+      anime.averageRating = overallRating;
+      await anime.save();
+    }
+
+    // Save rating record
+    let ratingRecord = await Rating.findOne({ user: userId, episode: episodeId });
+    if (ratingRecord) {
+      ratingRecord.rating = rating;
+    } else {
+      ratingRecord = new Rating({ user: userId, episode: episodeId, rating });
+    }
+    await ratingRecord.save();
+
+    res.json({ 
+      message: 'Episode rating saved successfully',
+      episodeRating: episode.averageRating,
+      animeRating: anime.averageRating
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 
 module.exports = {
   getAnimeList: exports.getAnimeList,

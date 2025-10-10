@@ -1,3 +1,4 @@
+// components/RatingModal.tsx
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
@@ -10,15 +11,31 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   episodeId: string;
+  onRatingSubmitted?: () => void;
 }
 
-export default function RatingModal({ visible, onClose, episodeId }: Props) {
+export default function RatingModal({ 
+  visible, 
+  onClose, 
+  episodeId, 
+  onRatingSubmitted 
+}: Props) {
   const [rating, setRating] = useState(0);
   const [submitted, setSubmitted] = useState(false);
 
   const submitRating = async () => {
-    await ApiService.rateEpisode(episodeId, rating);
-    setSubmitted(true);
+    try {
+      await ApiService.rateEpisode(episodeId, rating);
+      setSubmitted(true);
+      onRatingSubmitted?.();
+      setTimeout(() => {
+        setSubmitted(false);
+        setRating(0);
+        onClose();
+      }, 1500);
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+    }
   };
 
   const renderStars = () => {
@@ -42,11 +59,11 @@ export default function RatingModal({ visible, onClose, episodeId }: Props) {
             <Ionicons name="close" size={24} color="#999" />
           </TouchableOpacity>
           <Text style={styles.title}>
-            {submitted ? `You’ve Rated ${rating}/10` : 'RATE EPISODE'}
+            {submitted ? `You've Rated ${rating}/10` : 'RATE EPISODE'}
           </Text>
           <View style={styles.row}>{renderStars()}</View>
           {submitted ? (
-            <Text style={styles.submittedText}>Rating Submitted</Text>
+            <Text style={styles.submittedText}>Rating Submitted ✓</Text>
           ) : (
             <TouchableOpacity
               style={[styles.btn, { opacity: rating ? 1 : 0.5 }]}
@@ -76,13 +93,13 @@ const styles = StyleSheet.create({
     color: COLORS.cyan, fontSize: 20,
     fontFamily: FONTS.title, marginBottom: 20,
   },
-  row: { flexDirection: 'row', marginBottom: 20 },
+  row: { flexDirection: 'row', marginBottom: 20, flexWrap: 'wrap' },
   btn: {
     backgroundColor: COLORS.cyan, borderRadius: 8,
     paddingVertical: 12, paddingHorizontal: 48,
   },
   btnText: {
-    color: '#000', fontFamily: FONTS.title,
+    color: COLORS.black, fontFamily: FONTS.title,
     fontSize: 16, fontWeight: 'bold',
   },
   submittedText: {

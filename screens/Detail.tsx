@@ -1,4 +1,4 @@
-// screens/Detail.tsx (UPDATE)
+// screens/Detail.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,153 +9,263 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   FlatList,
+  Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../theme';
 import ApiService from '../services/api';
-import { HomeStackParamList } from '../types';
 import RatingModal from '../components/RatingModal';
 
-type DetailRouteProp = RouteProp<HomeStackParamList, 'Detail'>;
+// Define proper route params type
+type RouteParams = {
+  Detail: {
+    anime: {
+      id?: string;
+      _id?: string;
+      title?: string;
+      poster?: string;
+    };
+  };
+};
+
+type DetailRouteProp = RouteProp<RouteParams, 'Detail'>;
 
 interface Episode {
   _id: string;
   number: number;
   title: string;
+  thumbnail?: string;
   synopsis: string;
   airDate: string;
   averageRating: number;
+  userRatings: Array<{
+    user: string;
+    rating: number;
+  }>;
+}
+
+interface AnimeData {
+  _id: string;
+  title: string;
+  poster: string;
+  episodes: Episode[];
+  averageRating: number;
+  synopsis?: string;
 }
 
 export default function Detail(): React.ReactElement {
   const route = useRoute<DetailRouteProp>();
   const navigation = useNavigation();
-  const [animeData, setAnimeData] = useState<any>(null);
+  const [animeData, setAnimeData] = useState<AnimeData | null>(null);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [selectedEpisode, setSelectedEpisode] = useState<string>('');
-  console.log('Route params:', route.params.anime);
-  const animeId  = route.params.anime._id;
-  console.log('Anime ID:', animeId);
+  const [synopsisModalVisible, setSynopsisModalVisible] = useState(false);
+  const [selectedSynopsis, setSelectedSynopsis] = useState('');
+
+  // Fix: Properly access route params with null checks
+  const animeId = route.params?.anime?.id || route.params?.anime?._id;
+
   useEffect(() => {
-    loadAnimeDetails();
+    if (animeId) {
+      loadAnimeDetails();
+    } else {
+      // Handle case where no anime ID is provided
+      Alert.alert('Error', 'No anime selected', [
+        { text: 'Go Back', onPress: () => navigation.goBack() }
+      ]);
+    }
   }, [animeId]);
 
   const loadAnimeDetails = async () => {
+    if (!animeId) return;
+    
     try {
       const data = await ApiService.getAnimeById(animeId);
-      console.log('Fetched Anime Data:', data);
       setAnimeData(data);
       setEpisodes(data.episodes || []);
     } catch (error) {
       console.error('Error loading anime details:', error);
+      Alert.alert('Error', 'Failed to load anime details');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEpisodePress = (episode: Episode) => {
+  const handleEpisodeRating = (episode: Episode) => {
     setSelectedEpisode(episode._id);
     setRatingModalVisible(true);
   };
 
+  const handleCheckSynopsis = (episode: Episode) => {
+    if (!episode.synopsis || episode.synopsis.trim() === '') {
+      Alert.alert('No Synopsis', 'Synopsis not available for this episode.');
+      return;
+    }
+    setSelectedSynopsis(episode.synopsis);
+    setSynopsisModalVisible(true);
+  };
+
+  const onRatingSubmitted = () => {
+    // Refresh anime data to update ratings
+    loadAnimeDetails();
+    setRatingModalVisible(false);
+  };
+
+  const formatRating = (rating: number) => {
+    return rating ? `${rating.toFixed(1)}/10` : 'Not rated';
+  };
+
+  const formatPercentage = (rating: number) => {
+    return rating ? `(${Math.round(rating * 10)}%)` : '';
+  };
+
   const renderEpisode = ({ item }: { item: Episode }) => (
-    <TouchableOpacity 
-      style={styles.episodeCard}
-      onPress={() => handleEpisodePress(item)}
-    >
+    <View style={styles.episodeCard}>
+      <Image
+        source={{ uri: item.thumbnail || animeData?.poster }}
+        style={styles.episodeThumbnail}
+      />
+      
       <View style={styles.episodeInfo}>
-        <Text style={styles.episodeNumber}>Episode {item.number}</Text>
-        <Text style={styles.episodeTitle}>{item.title}</Text>
-        {item.synopsis && (
-          <Text style={styles.episodeSynopsis} numberOfLines={2}>
-            {item.synopsis}
-          </Text>
-        )}
-        <View style={styles.episodeFooter}>
-          {item.airDate && (
-            <Text style={styles.episodeDate}>
-              {new Date(item.airDate).toLocaleDateString()}
+        <Text style={styles.episodeAirDate}>
+          {item.airDate ? new Date(item.airDate).toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          }).toUpperCase() : 'TBA'}
+        </Text>
+        
+        <Text style={styles.episodeTitle}>
+          E{item.number} • {item.title}
+        </Text>
+        
+        <TouchableOpacity
+          style={styles.synopsisButton}
+          onPress={() => handleCheckSynopsis(item)}
+        >
+          <Text style={styles.synopsisButtonText}>Check Synopsis</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.rateButton}
+          onPress={() => handleEpisodeRating(item)}
+        >
+          <Text style={styles.rateButtonText}>RATE EPISODE</Text>
+        </TouchableOpacity>
+        
+        {item.averageRating > 0 && (
+          <View style={styles.ratingDisplay}>
+            <Ionicons name="star" color="#FFD700" size={16} />
+            <Text style={styles.ratingText}>
+              {formatRating(item.averageRating)} {formatPercentage(item.averageRating)}
             </Text>
-          )}
-          {item.averageRating > 0 && (
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" color="#FFD700" size={14} />
-              <Text style={styles.ratingText}>{item.averageRating.toFixed(1)}</Text>
-            </View>
-          )}
-        </View>
+          </View>
+        )}
       </View>
-      <TouchableOpacity 
-        style={styles.rateButton}
-        onPress={() => handleEpisodePress(item)}
-      >
-        <Ionicons name="star-outline" color={COLORS.cyan} size={20} />
-      </TouchableOpacity>
-    </TouchableOpacity>
+    </View>
   );
 
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
         <ActivityIndicator color={COLORS.cyan} size="large" />
+        <Text style={styles.loadingText}>Loading anime details...</Text>
+      </View>
+    );
+  }
+
+  if (!animeData) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Text style={styles.errorText}>Anime not found</Text>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" color={COLORS.text} size={24} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Anime Details</Text>
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" color={COLORS.text} size={24} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {animeData.title}
+        </Text>
+        <TouchableOpacity>
+          <Ionicons name="share-outline" color={COLORS.text} size={24} />
+        </TouchableOpacity>
+      </View>
 
-        {/* Anime Info */}
-        <View style={styles.animeInfo}>
-          <Image
-            source={{ uri: animeData?.poster }}
-            style={styles.poster}
-          />
-          <View style={styles.infoText}>
-            <Text style={styles.title}>{animeData?.title}</Text>
-            {animeData?.titleEnglish && (
-              <Text style={styles.englishTitle}>{animeData.titleEnglish}</Text>
-            )}
-            <Text style={styles.synopsis}>{animeData?.synopsis}</Text>
-          </View>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Season Selector */}
+        <View style={styles.seasonSelector}>
+          <TouchableOpacity style={styles.seasonDropdown}>
+            <Text style={styles.seasonText}>Season 1</Text>
+            <Ionicons name="chevron-down" color={COLORS.text} size={16} />
+          </TouchableOpacity>
+          <Text style={styles.episodeCount}>{episodes.length} Episodes</Text>
         </View>
 
         {/* Episodes List */}
-        <View style={styles.episodesSection}>
-          <Text style={styles.sectionTitle}>
-            Episodes ({episodes.length})
-          </Text>
-          {episodes.length > 0 ? (
-            <FlatList
-              data={episodes}
-              renderItem={renderEpisode}
-              keyExtractor={item => item._id}
-              scrollEnabled={false}
-              ItemSeparatorComponent={() => <View style={styles.separator} />}
-            />
-          ) : (
-            <Text style={styles.noEpisodes}>No episodes available</Text>
-          )}
-        </View>
+        {episodes.length > 0 ? (
+          <FlatList
+            data={episodes}
+            renderItem={renderEpisode}
+            keyExtractor={item => item._id}
+            scrollEnabled={false}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            contentContainerStyle={styles.episodesList}
+          />
+        ) : (
+          <View style={styles.noEpisodes}>
+            <Ionicons name="film-outline" color="#666" size={48} />
+            <Text style={styles.noEpisodesText}>No episodes available</Text>
+          </View>
+        )}
       </ScrollView>
 
+      {/* Rating Modal */}
       <RatingModal
         visible={ratingModalVisible}
         onClose={() => setRatingModalVisible(false)}
         episodeId={selectedEpisode}
+        onRatingSubmitted={onRatingSubmitted}
       />
+
+      {/* Synopsis Modal */}
+      <Modal
+        visible={synopsisModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSynopsisModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.synopsisModal}>
+            <View style={styles.synopsisHeader}>
+              <Text style={styles.synopsisTitle}>Episode Synopsis</Text>
+              <TouchableOpacity onPress={() => setSynopsisModalVisible(false)}>
+                <Ionicons name="close" color={COLORS.text} size={24} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.synopsisContent}>
+              <Text style={styles.synopsisText}>{selectedSynopsis}</Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -163,10 +273,23 @@ export default function Detail(): React.ReactElement {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.black },
   centered: { justifyContent: 'center', alignItems: 'center' },
+  loadingText: { color: '#666', marginTop: 12, fontSize: 14 },
+  errorText: { color: COLORS.text, fontSize: 16, marginBottom: 16 },
+  backButton: { 
+    backgroundColor: COLORS.cyan, 
+    paddingHorizontal: 20, 
+    paddingVertical: 10, 
+    borderRadius: 8 
+  },
+  backButtonText: { color: COLORS.black, fontWeight: 'bold' },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#333',
   },
@@ -174,81 +297,103 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 18,
     fontFamily: FONTS.title,
-    marginLeft: 16,
+    fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 16,
   },
-  animeInfo: {
+
+  // Content
+  content: { flex: 1 },
+  seasonSelector: {
     flexDirection: 'row',
-    padding: 20,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  poster: {
-    width: 120,
-    height: 160,
+  seasonDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#333',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
-    marginRight: 16,
   },
-  infoText: { flex: 1 },
-  title: {
+  seasonText: {
     color: COLORS.text,
-    fontSize: 20,
-    fontFamily: FONTS.title,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  englishTitle: {
-    color: '#999',
     fontSize: 16,
-    marginBottom: 8,
-  },
-  synopsis: {
-    color: '#CCC',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  episodesSection: { padding: 20 },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 18,
     fontFamily: FONTS.title,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    marginRight: 8,
+  },
+  episodeCount: {
+    color: COLORS.text,
+    fontSize: 16,
+  },
+
+  // Episodes
+  episodesList: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   episodeCard: {
     flexDirection: 'row',
     backgroundColor: '#1A1A1A',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
-    alignItems: 'center',
   },
-  episodeInfo: { flex: 1 },
-  episodeNumber: {
-    color: COLORS.cyan,
+  episodeThumbnail: {
+    width: 80,
+    height: 120,
+    borderRadius: 8,
+    marginRight: 16,
+  },
+  episodeInfo: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  episodeAirDate: {
+    color: '#999',
     fontSize: 12,
+    marginBottom: 4,
     fontFamily: FONTS.body,
-    fontWeight: 'bold',
   },
   episodeTitle: {
     color: COLORS.text,
     fontSize: 16,
-    fontFamily: FONTS.body,
+    fontFamily: FONTS.title,
     fontWeight: 'bold',
-    marginVertical: 4,
-  },
-  episodeSynopsis: {
-    color: '#999',
-    fontSize: 12,
-    lineHeight: 16,
     marginBottom: 8,
   },
-  episodeFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  synopsisButton: {
+    backgroundColor: COLORS.cyan,
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  synopsisButtonText: {
+    color: COLORS.black,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  rateButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: COLORS.cyan,
+    borderRadius: 6,
+    paddingVertical: 8,
     alignItems: 'center',
+    marginBottom: 8,
   },
-  episodeDate: {
-    color: '#666',
-    fontSize: 11,
+  rateButtonText: {
+    color: COLORS.cyan,
+    fontSize: 14,
+    fontFamily: FONTS.title,
+    fontWeight: 'bold',
   },
-  ratingContainer: {
+  ratingDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -257,14 +402,54 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 4,
   },
-  rateButton: {
-    padding: 8,
-  },
-  separator: { height: 12 },
+  separator: { height: 16 },
   noEpisodes: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  noEpisodesText: {
     color: '#666',
-    textAlign: 'center',
-    fontStyle: 'italic',
-    marginTop: 20,
+    fontSize: 16,
+    marginTop: 16,
+  },
+
+  // Synopsis Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  synopsisModal: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    margin: 20,
+    maxHeight: '70%',
+    width: '90%',
+  },
+  synopsisHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  synopsisTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontFamily: FONTS.title,
+    fontWeight: 'bold',
+  },
+  synopsisContent: {
+    padding: 20,
+  },
+  synopsisText: {
+    color: COLORS.text,
+    fontSize: 16,
+    lineHeight: 24,
+    fontFamily: FONTS.body,
   },
 });
