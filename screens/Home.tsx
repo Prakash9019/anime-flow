@@ -101,6 +101,7 @@ export default function Home(): React.ReactElement {
     const isTopRated = index === 0 || item.rank === 1;
     
     return (
+      
       <TouchableOpacity
         style={[
           styles.animeCard,
@@ -198,7 +199,7 @@ export default function Home(): React.ReactElement {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
-            source={require('../assets/images/logo.png')}
+            source={require('../assets/images/logo.jpg')}
             style={styles.logo}
           />
           <Text style={styles.appTitle}>ANIME FLOW</Text>

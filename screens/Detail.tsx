@@ -102,6 +102,7 @@ export default function Detail(): React.ReactElement {
   };
 
   const handleCheckSynopsis = (episode: Episode) => {
+    console.log(episode);
     if (!episode.synopsis || episode.synopsis.trim() === '') {
       Alert.alert('No Synopsis', 'Synopsis not available for this episode.');
       return;

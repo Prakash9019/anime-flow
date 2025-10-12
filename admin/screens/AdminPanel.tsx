@@ -1,94 +1,81 @@
-// screens/AdminPanel.tsx
-
+// admin/screens/AdminPanel.tsx
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import Logo from '../components/Logo';
-import { COLORS, FONTS } from '../../theme';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { AdminParamList } from '../navigation/AdminStack';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, FONTS } from '../../theme';
 
-type AdminNavProp = NativeStackNavigationProp<AdminParamList, 'AdminPanel'>;
-
-interface MenuItemProps {
-  title: string;
-  screen: keyof AdminParamList;
-}
-
-const MenuItem: React.FC<MenuItemProps> = ({ title, screen }) => {
-  const navigation = useNavigation<AdminNavProp>();
-  return (
-    <TouchableOpacity
-      style={styles.menuItem}
-      onPress={() => navigation.navigate(screen)}
-    >
-      <Text style={styles.menuText}>{title}</Text>
-      <Ionicons name="chevron-forward" color={COLORS.text} size={20} />
-    </TouchableOpacity>
-  );
-};
+const adminMenuItems = [
+  { title: 'Post Anime Content', screen: 'PostAnimeContent', icon: 'add-circle' },
+  { title: 'Edit Existing Anime Content', screen: 'EditContent', icon: 'create' },
+  { title: 'Bulk Upload', screen: 'BulkUpload', icon: 'cloud-upload' },
+  { title: 'Bulk Edit', screen: 'BulkEdit', icon: 'create-outline' },
+  { title: 'Manage Account', screen: 'ManageAccount', icon: 'person-circle' },
+  { title: 'Create Employees', screen: 'CreateEmployee', icon: 'people' },
+];
 
 export default function AdminPanel(): React.ReactElement {
-  const menuItems: MenuItemProps[] = [
-    { title: 'Post Anime Content', screen: 'PostAnimeContent' },
-    { title: 'Edit Existing Anime Content', screen: 'EditContent' },
-    { title: 'Bulk Upload', screen: 'BulkUpload' },
-    { title: 'Bulk Edit', screen: 'BulkEdit' },
-    { title: 'Manage Account', screen: 'ManageAccount' },
-    { title: 'Create Employees', screen: 'CreateEmployee' },
-  ];
+  const navigation = useNavigation();
+
+  const handleMenuPress = (screen: string) => {
+    navigation.navigate(screen as never);
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Logo size={60} />
-      </View>
-
-      <View style={styles.dropdown}>
-        <Text style={styles.dropdownText}>Admin Panel</Text>
-        <Ionicons name="chevron-down" color="#999" size={20} />
-      </View>
-
-      <ScrollView style={styles.menu}>
-        {menuItems.map((item, idx) => (
-          <MenuItem key={idx} title={item.title} screen={item.screen} />
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.menuContainer}>
+        {adminMenuItems.map((item, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.menuItem}
+            onPress={() => handleMenuPress(item.screen)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.menuItemContent}>
+              <Ionicons name={item.icon as any} color={COLORS.text} size={24} />
+              <Text style={styles.menuItemText}>{item.title}</Text>
+            </View>
+            <Ionicons name="chevron-forward" color="#666" size={20} />
+          </TouchableOpacity>
         ))}
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <View style={styles.footerLine} />
-        <Text style={styles.footerText}>ANIME FLOW ADMIN MODE</Text>
       </View>
-    </SafeAreaView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.black },
-  header: { alignItems: 'center', paddingVertical: 20 },
-  dropdown: {
-    backgroundColor: '#222',
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between'
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
-  dropdownText: { color: COLORS.text, fontSize: 16, fontFamily: FONTS.body },
-  menu: { flex: 1, paddingHorizontal: 20, marginTop: 20 },
+  menuContainer: {
+    paddingTop: 20,
+    paddingBottom: 40,
+  },
   menuItem: {
-    backgroundColor: '#1A1A1A',
-    padding: 20,
-    borderRadius: 8,
-    marginBottom: 12,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
   },
-  menuText: { color: COLORS.text, fontSize: 16, fontFamily: FONTS.body },
-  footer: { alignItems: 'center', paddingVertical: 20 },
-  footerLine: { width: 80, height: 4, backgroundColor: COLORS.cyan, marginBottom: 12 },
-  footerText: { color: COLORS.cyan, fontSize: 14, fontFamily: FONTS.title }
+  menuItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuItemText: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontFamily: FONTS.body,
+    marginLeft: 16,
+  },
 });

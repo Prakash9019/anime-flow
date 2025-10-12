@@ -42,6 +42,7 @@ exports.getUserStats = async (req, res) => {
 // Get user's ratings
 router.get('/ratings', auth, async (req, res) => {
   try {
+    console.log(req.user._id)
     const ratings = await Rating.find({ user: req.user._id })
       .populate('anime', 'title poster')
       .sort({ createdAt: -1 });
