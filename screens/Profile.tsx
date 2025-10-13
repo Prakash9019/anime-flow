@@ -39,6 +39,7 @@ export default function Profile(): React.ReactElement {
 
   useEffect(() => {
     if (user) {
+      console.log("hiiii");
       fetchUserRatings();
       checkAdFreeStatus();
     }
@@ -238,19 +239,7 @@ export default function Profile(): React.ReactElement {
         )}
       </View>
 
-      {/* Bottom tabs */}
-      <View style={styles.tabBar}>
-        <View style={styles.indicator} />
-        <TouchableOpacity style={styles.tab}>
-          <Ionicons name="home-outline" color="#999" size={22} />
-          <Text style={[styles.tabText, { color: '#999' }]}>Home</Text>
-        </TouchableOpacity>
-        <View style={styles.divider} />
-        <TouchableOpacity style={styles.tab}>
-          <Ionicons name="person" color={COLORS.cyan} size={22} />
-          <Text style={[styles.tabText, { color: COLORS.cyan }]}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+     
 
       {/* Donation Modal */}
       <DonationModal
