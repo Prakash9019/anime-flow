@@ -128,6 +128,18 @@ export default function AdminLogin(): React.ReactElement {
     );
   };
 
+  // / Check if we can go back
+  const canGoBack = navigation.canGoBack();
+
+  const handleBackPress = () => {
+    if (canGoBack) {
+      navigation.goBack();
+    } else {
+      // If no previous screen, navigate to a specific screen
+      navigation.replace('Splash'); // or 'UserMain' or wherever you want to go
+    }
+  };
+
   const handleReportError = () => {
     Alert.alert(
       'Report Error',
@@ -167,12 +179,12 @@ export default function AdminLogin(): React.ReactElement {
           <Text style={styles.formTitle}>Log into Admin Mode</Text>
           
           {/* Demo credentials button */}
-          <TouchableOpacity 
+          {/* <TouchableOpacity 
             style={styles.demoButton}
             onPress={fillDemoCredentials}
           >
             <Text style={styles.demoText}>Fill Demo Credentials</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           
           <TextInput
             style={[styles.input, isFilled && { borderColor: COLORS.cyan }]}
@@ -241,7 +253,7 @@ export default function AdminLogin(): React.ReactElement {
         {/* Back button */}
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => handleBackPress()}
         >
           <Ionicons name="chevron-back" color={COLORS.text} size={24} />
           <Text style={styles.backText}>Back to Home</Text>

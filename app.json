@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.suryap2003.animeflow2",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -29,15 +33,19 @@
     },
     "plugins": [
       "expo-font",
-          [
+      [
         "@react-native-google-signin/google-signin",
         {
-          "iosClientId": "554236244715-u7kms8qsntj4079atfttvo2jei5m75rc.apps.googleusercontent.com", 
-          "webClientId": "554236244715-4qpomofhim5vncie4bsaqrl3f9hlr3o7.apps.googleusercontent.com" ,
-
+          "iosClientId": "554236244715-u7kms8qsntj4079atfttvo2jei5m75rc.apps.googleusercontent.com",
+          "webClientId": "554236244715-4qpomofhim5vncie4bsaqrl3f9hlr3o7.apps.googleusercontent.com",
           "iosUrlScheme": "com.googleusercontent.apps.554236244715-u7kms8qsntj4079atfttvo2jei5m75rc"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "664073c8-5655-4bb7-ad72-56dbcd35174f"
+      }
+    }
   }
 }

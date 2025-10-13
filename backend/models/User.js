@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String },
   avatar: { type: String },
   isAdmin: { type: Boolean, default: false },
+    isAdFree: { type: Boolean, default: false },
+  adFreeGrantedAt: { type: Date },
   watchlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Anime' }],
   ratings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Rating' }],
 }, { timestamps: true });

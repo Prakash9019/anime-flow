@@ -19,8 +19,7 @@ import { COLORS, FONTS } from '../theme';
 import ApiService from '../services/api';
 import RatingModal from '../components/RatingModal';
 
-// Define proper route params type
-type RouteParams = {
+type RootRouteParamList = {
   Detail: {
     anime: {
       id?: string;
@@ -31,7 +30,7 @@ type RouteParams = {
   };
 };
 
-type DetailRouteProp = RouteProp<RouteParams, 'Detail'>;
+type DetailRouteProp = RouteProp<RootRouteParamList, 'Detail'>;
 
 interface Episode {
   _id: string;
@@ -67,14 +66,12 @@ export default function Detail(): React.ReactElement {
   const [synopsisModalVisible, setSynopsisModalVisible] = useState(false);
   const [selectedSynopsis, setSelectedSynopsis] = useState('');
 
-  // Fix: Properly access route params with null checks
   const animeId = route.params?.anime?.id || route.params?.anime?._id;
 
   useEffect(() => {
     if (animeId) {
       loadAnimeDetails();
     } else {
-      // Handle case where no anime ID is provided
       Alert.alert('Error', 'No anime selected', [
         { text: 'Go Back', onPress: () => navigation.goBack() }
       ]);
@@ -83,7 +80,7 @@ export default function Detail(): React.ReactElement {
 
   const loadAnimeDetails = async () => {
     if (!animeId) return;
-    
+    setLoading(true);
     try {
       const data = await ApiService.getAnimeById(animeId);
       setAnimeData(data);
@@ -102,7 +99,6 @@ export default function Detail(): React.ReactElement {
   };
 
   const handleCheckSynopsis = (episode: Episode) => {
-    console.log(episode);
     if (!episode.synopsis || episode.synopsis.trim() === '') {
       Alert.alert('No Synopsis', 'Synopsis not available for this episode.');
       return;
@@ -112,18 +108,11 @@ export default function Detail(): React.ReactElement {
   };
 
   const onRatingSubmitted = () => {
-    // Refresh anime data to update ratings
     loadAnimeDetails();
     setRatingModalVisible(false);
   };
 
-  const formatRating = (rating: number) => {
-    return rating ? `${rating.toFixed(1)}/10` : 'Not rated';
-  };
-
-  const formatPercentage = (rating: number) => {
-    return rating ? `(${Math.round(rating * 10)}%)` : '';
-  };
+  const formatRating = (rating: number) => rating ? `${rating.toFixed(1)}/10` : 'Not rated';
 
   const renderEpisode = ({ item }: { item: Episode }) => (
     <View style={styles.episodeCard}>
@@ -131,7 +120,6 @@ export default function Detail(): React.ReactElement {
         source={{ uri: item.thumbnail || animeData?.poster }}
         style={styles.episodeThumbnail}
       />
-      
       <View style={styles.episodeInfo}>
         <Text style={styles.episodeAirDate}>
           {item.airDate ? new Date(item.airDate).toLocaleDateString('en-US', {
@@ -141,30 +129,26 @@ export default function Detail(): React.ReactElement {
             year: 'numeric'
           }).toUpperCase() : 'TBA'}
         </Text>
-        
         <Text style={styles.episodeTitle}>
           E{item.number} • {item.title}
         </Text>
-        
         <TouchableOpacity
           style={styles.synopsisButton}
           onPress={() => handleCheckSynopsis(item)}
         >
           <Text style={styles.synopsisButtonText}>Check Synopsis</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity
           style={styles.rateButton}
           onPress={() => handleEpisodeRating(item)}
         >
           <Text style={styles.rateButtonText}>RATE EPISODE</Text>
         </TouchableOpacity>
-        
         {item.averageRating > 0 && (
           <View style={styles.ratingDisplay}>
             <Ionicons name="star" color="#FFD700" size={16} />
             <Text style={styles.ratingText}>
-              {formatRating(item.averageRating)} {formatPercentage(item.averageRating)}
+              {formatRating(item.averageRating)} ({item.userRatings?.length || 0})
             </Text>
           </View>
         )}
@@ -284,7 +268,6 @@ const styles = StyleSheet.create({
   },
   backButtonText: { color: COLORS.black, fontWeight: 'bold' },
 
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -304,7 +287,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
 
-  // Content
   content: { flex: 1 },
   seasonSelector: {
     flexDirection: 'row',
@@ -332,7 +314,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  // Episodes
   episodesList: {
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -416,7 +397,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 
-  // Synopsis Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.8)',

@@ -1,22 +1,40 @@
 // types/index.ts
 export interface Episode {
-  id: string;
-  name: string;
-  date: string;
-  thumb: any;
-  synopsis: string;
-  rating: number;
-  votes?: string;
-}
-
-export interface Anime {
   _id: string;
+  number: number;
   title: string;
-  poster: any;
-  episodes: Episode[];
+  synopsis: string;
+  airDate: string;
+  thumbnail?: string;
+  averageRating: number;
+  userRatings: Array<{
+    user: string;
+    rating: number;
+  }>;
 }
 
-// Fix: Include Splash and Auth in RootStackParamList
+export interface AnimeItem {
+  _id: string;
+  id: string;
+  title: string;
+  poster: string;
+  averageRating: number;
+  rank: number;
+  genres: string[];
+  status: string;
+  episodes?: Episode[];
+  synopsis?: string;
+}
+
+export interface User {
+  _id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  isAdFree?: boolean;
+}
+
+// Navigation Types
 export type RootStackParamList = {
   Splash: undefined;
   Auth: undefined;
@@ -33,5 +51,17 @@ export type MainTabParamList = {
 
 export type HomeStackParamList = {
   Home: undefined;
-  Detail: { anime: Anime };
+  Detail: { anime: AnimeItem };
+};
+
+export type AdminParamList = {
+  AdminMain: undefined;
+  AdminPanel: undefined;
+  CreateEmployee: undefined;
+  ManageAccount: undefined;
+  PostAnimeContent: undefined;
+  EditContent: undefined;
+  BulkUpload: undefined;
+  BulkEdit: undefined;
+  AdminLogin: undefined;
 };

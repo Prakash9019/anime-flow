@@ -251,47 +251,47 @@ exports.syncAllEpisodes = async (req, res) => {
   }
 };
 
-// Sync episodes for a specific anime
-exports.syncEpisodesFromJikan = async (req, res) => {
-  try {
-    const anime = await Anime.findById(req.params.id);
-    if (!anime || !anime.malId) {
-      return res.status(404).json({ message: 'Anime not found or missing MAL ID' });
-    }
+// // Sync episodes for a specific anime
+// exports.syncEpisodesFromJikan = async (req, res) => {
+//   try {
+//     const anime = await Anime.findById(req.params.id);
+//     if (!anime || !anime.malId) {
+//       return res.status(404).json({ message: 'Anime not found or missing MAL ID' });
+//     }
 
-    const jikanEpisodes = await jikanService.getAnimeEpisodes(anime.malId);
-    let count = 0;
+//     const jikanEpisodes = await jikanService.getAnimeEpisodes(anime.malId);
+//     let count = 0;
 
-    for (const ep of jikanEpisodes) {
-      const exists = await Episode.findOne({ 
-        anime: anime._id, 
-        number: ep.mal_id || ep.episode 
-      });
+//     for (const ep of jikanEpisodes) {
+//       const exists = await Episode.findOne({ 
+//         anime: anime._id, 
+//         number: ep.mal_id || ep.episode 
+//       });
       
-      if (!exists) {
-        const newEp = new Episode({
-          anime: anime._id,
-          number: ep.mal_id || ep.episode,
-          title: ep.title || `Episode ${ep.mal_id || ep.episode}`,
-          synopsis: ep.synopsis,
-          airDate: ep.aired ? new Date(ep.aired) : undefined,
-          duration: ep.duration,
-        });
-        await newEp.save();
-        anime.episodes.push(newEp._id);
-        count++;
-      }
-    }
+//       if (!exists) {
+//         const newEp = new Episode({
+//           anime: anime._id,
+//           number: ep.mal_id || ep.episode,
+//           title: ep.title || `Episode ${ep.mal_id || ep.episode}`,
+//           synopsis: ep.synopsis,
+//           airDate: ep.aired ? new Date(ep.aired) : undefined,
+//           duration: ep.duration,
+//         });
+//         await newEp.save();
+//         anime.episodes.push(newEp._id);
+//         count++;
+//       }
+//     }
     
-    await anime.save();
-    res.json({ 
-      message: `Synced ${count} episodes for ${anime.title}`, 
-      total: count 
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error syncing episodes', error: error.message });
-  }
-};
+//     await anime.save();
+//     res.json({ 
+//       message: `Synced ${count} episodes for ${anime.title}`, 
+//       total: count 
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Error syncing episodes', error: error.message });
+//   }
+// };
 
 // Search anime (optional - if you want search functionality)
 exports.searchAnime = async (req, res) => {
@@ -375,6 +375,169 @@ exports.rateEpisode = async (req, res) => {
   }
 };
 
+// Bulk sync all episode synopses for all anime
+exports.syncAllEpisodesSynopses = async (req, res) => {
+  try {
+    const allAnime = await Anime.find({ malId: { $exists: true } });
+    let totalUpdated = 0;
+    let totalAdded = 0;
+    let errors = [];
+
+    for (const anime of allAnime) {
+      try {
+        const result = await exports.syncEpisodesFromJikan({ params: { id: anime._id } }, { 
+          json: (data) => {
+            totalUpdated += data.updated || 0;
+            totalAdded += data.added || 0;
+          }
+        }, true); // Pass dummy res, and an extra arg not to really call res.json in subcalls
+      } catch (err) {
+        errors.push({ anime: anime.title, error: err.message });
+      }
+    }
+
+    res.json({
+      message: `Bulk sync done.`,
+      totalUpdated,
+      totalAdded,
+      errorCount: errors.length,
+      errors,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Bulk sync error', error: error.message });
+  }
+};
+
+
+const kitsuService = require('../services/kituService');
+
+exports.syncEpisodesFromJikan = async (req, res) => {
+  try {
+    const anime = await Anime.findById(req.params.id);
+    if (!anime || !anime.malId) {
+      return res.status(404).json({ message: 'Anime not found or missing MAL ID' });
+    }
+
+    console.log(`Syncing episodes for: ${anime.title}`);
+
+    // Get episodes from Jikan (basic info)
+    const jikanEpisodes = await jikanService.getAnimeEpisodes(anime.malId);
+
+    // Try to get better episode data from Kitsu
+    let kitsuEpisodes = [];
+    try {
+      const kitsuAnime = await kitsuService.searchAnime(anime.title);
+      if (kitsuAnime.length > 0) {
+        kitsuEpisodes = await kitsuService.getEpisodes(kitsuAnime[0].id);
+      }
+    } catch (error) {
+      console.log('Kitsu fallback failed, using Jikan only');
+    }
+
+    let newCount = 0;
+    let updatedCount = 0;
+
+    for (const jikanEp of jikanEpisodes) {
+      const epNumber = jikanEp.mal_id || jikanEp.episode;
+
+      // Find DB episode
+      let dbEpisode = await Episode.findOne({ anime: anime._id, number: epNumber });
+
+      // Find matching Kitsu episode
+      const kitsuEp = kitsuEpisodes.find(ep =>
+        ep.attributes.number === epNumber
+      );
+
+      const bestSynopsis = kitsuEp?.attributes?.synopsis
+        || jikanEp.synopsis
+        || `Episode ${epNumber} of ${anime.title}`;
+
+      const bestTitle = jikanEp.title || kitsuEp?.attributes?.canonicalTitle || `Episode ${epNumber}`;
+
+      const bestThumbnail = kitsuEp?.attributes?.thumbnail?.original || null;
+
+      if (dbEpisode) {
+        // --- Update existing episode's synopsis if empty or outdated ---
+        let updated = false;
+        if ((!dbEpisode.synopsis || dbEpisode.synopsis.trim() === '' || dbEpisode.synopsis.startsWith('Episode ')) && bestSynopsis) {
+          dbEpisode.synopsis = bestSynopsis;
+          updated = true;
+        }
+        if ((!dbEpisode.title || dbEpisode.title.startsWith('Episode')) && bestTitle) {
+          dbEpisode.title = bestTitle;
+          updated = true;
+        }
+        if (!dbEpisode.thumbnail && bestThumbnail) {
+          dbEpisode.thumbnail = bestThumbnail;
+          updated = true;
+        }
+        if (updated) {
+          await dbEpisode.save();
+          updatedCount++;
+        }
+      } else {
+        // --- Create new episode if not exist ---
+        const newEp = new Episode({
+          anime: anime._id,
+          number: epNumber,
+          title: bestTitle,
+          synopsis: bestSynopsis,
+          airDate: jikanEp.aired ? new Date(jikanEp.aired) : undefined,
+          duration: jikanEp.duration,
+          thumbnail: bestThumbnail,
+        });
+        await newEp.save();
+        anime.episodes.push(newEp._id);
+        newCount++;
+        console.log(`Added episode ${newEp.number}: ${newEp.title}`);
+      }
+    }
+
+    await anime.save();
+    res.json({
+      message: `Added ${newCount}, updated ${updatedCount} episodes for ${anime.title}`,
+      added: newCount,
+      updated: updatedCount,
+      sources: kitsuEpisodes.length > 0 ? ['Jikan', 'Kitsu'] : ['Jikan'],
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error syncing episodes', error: error.message });
+  }
+};
+
+// Bulk sync all episode synopses for all anime
+exports.syncAllEpisodesSynopses = async (req, res) => {
+  try {
+    const allAnime = await Anime.find({ malId: { $exists: true } });
+    let totalUpdated = 0;
+    let totalAdded = 0;
+    let errors = [];
+
+    for (const anime of allAnime) {
+      try {
+        const result = await exports.syncEpisodesFromJikan({ params: { id: anime._id } }, { 
+          json: (data) => {
+            totalUpdated += data.updated || 0;
+            totalAdded += data.added || 0;
+          }
+        }, true); // Pass dummy res, and an extra arg not to really call res.json in subcalls
+      } catch (err) {
+        errors.push({ anime: anime.title, error: err.message });
+      }
+    }
+
+    res.json({
+      message: `Bulk sync done.`,
+      totalUpdated,
+      totalAdded,
+      errorCount: errors.length,
+      errors,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Bulk sync error', error: error.message });
+  }
+};
+
 
 module.exports = {
   getAnimeList: exports.getAnimeList,
@@ -382,6 +545,7 @@ module.exports = {
   rateAnime: exports.rateAnime,
   rateEpisode: exports.rateEpisode,
   syncWithMAL: exports.syncWithMAL,
+  syncAllEpisodesSynopses : exports.syncAllEpisodesSynopses,
   syncAllEpisodes: exports.syncAllEpisodes,
   syncEpisodesFromJikan: exports.syncEpisodesFromJikan,
   searchAnime: exports.searchAnime,

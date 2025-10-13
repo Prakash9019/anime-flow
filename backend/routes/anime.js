@@ -42,4 +42,10 @@ router.post('/sync-mal', animeController.syncWithMAL); // Syncs anime + episodes
 router.post('/sync-episodes',  animeController.syncAllEpisodes); // Episodes only
 router.post('/:id/sync-episodes', animeController.syncEpisodesFromJikan); // Single anime
 
+// This route will update existing episode synopses and titles for a given anime
+router.post('/:id/sync-episode-synopsis', animeController.syncEpisodesFromJikan);
+// BULK: Sync ALL anime synopses at once
+router.post('/sync-all-episode-synopses',  animeController.syncAllEpisodesSynopses);
+
+
 module.exports = router;

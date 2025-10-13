@@ -14,9 +14,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS, FONTS, SIZES } from '../theme';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { COLORS, FONTS } from '../theme';
 import ApiService from '../services/api';
+import AdBanner from '../components/AdBanner';
+import { useAuth } from '../hooks/useAuth';
 
+// Define types locally if not exported from types file
 interface AnimeItem {
   _id: string;
   id: string;
@@ -26,20 +30,56 @@ interface AnimeItem {
   rank: number;
   genres: string[];
   status: string;
-  [key: string]: any;
+  episodes?: any[];
+  synopsis?: string;
 }
 
+type HomeStackParamList = {
+  Home: undefined;
+  Detail: { anime: AnimeItem };
+};
+
+type HomeNavigationProp = NativeStackNavigationProp<HomeStackParamList, 'Home'>;
+
 export default function Home(): React.ReactElement {
-  const navigation = useNavigation();
+  const navigation = useNavigation<HomeNavigationProp>();
+  const { user } = useAuth();
   const [animeList, setAnimeList] = useState<AnimeItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
+  const [isAdFree, setIsAdFree] = useState(false);
 
   useEffect(() => {
     fetchAnimeList();
-  }, []);
+    if (user) {
+      checkAdFreeStatus();
+    }
+  }, [user]);
+
+  const checkAdFreeStatus = async () => {
+    if (!user) {
+      setIsAdFree(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${ApiService.baseURL}/user/ad-free-status`, {
+        headers: await ApiService.getAuthHeaders(),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setIsAdFree(data.isAdFree || false);
+      } else {
+        setIsAdFree(false);
+      }
+    } catch (error) {
+      console.error('Error checking ad-free status:', error);
+      setIsAdFree(false);
+    }
+  };
 
   const fetchAnimeList = async (refresh = false) => {
     if (refresh) {
@@ -50,12 +90,76 @@ export default function Home(): React.ReactElement {
 
     try {
       const response = await ApiService.getAnimeList({
-        sort: 'rating', // Sort by rating (highest first)
+        sort: 'rating',
         limit: 50
       });
       setAnimeList(response.anime || []);
     } catch (error) {
       console.error('Error fetching anime list:', error);
+      // Use mock data if API fails
+      const mockAnime: AnimeItem[] = [
+        {
+          _id: '1',
+          id: '1',
+          title: 'Attack on Titan',
+          poster: 'https://cdn.myanimelist.net/images/anime/10/47347.jpg',
+          averageRating: 9.0,
+          rank: 1,
+          genres: ['Action', 'Drama'],
+          status: 'Completed'
+        },
+        {
+          _id: '2',
+          id: '2',
+          title: 'Demon Slayer',
+          poster: 'https://cdn.myanimelist.net/images/anime/1286/99889.jpg',
+          averageRating: 8.7,
+          rank: 2,
+          genres: ['Action', 'Supernatural'],
+          status: 'Completed'
+        },
+        {
+          _id: '3',
+          id: '3',
+          title: 'One Piece',
+          poster: 'https://cdn.myanimelist.net/images/anime/6/73245.jpg',
+          averageRating: 8.9,
+          rank: 3,
+          genres: ['Action', 'Adventure'],
+          status: 'Ongoing'
+        },
+        {
+          _id: '4',
+          id: '4',
+          title: 'Naruto',
+          poster: 'https://cdn.myanimelist.net/images/anime/13/17405.jpg',
+          averageRating: 8.4,
+          rank: 4,
+          genres: ['Action', 'Martial Arts'],
+          status: 'Completed'
+        },
+        {
+          _id: '5',
+          id: '5',
+          title: 'Your Name',
+          poster: 'https://cdn.myanimelist.net/images/anime/5/87048.jpg',
+          averageRating: 8.4,
+          rank: 5,
+          genres: ['Romance', 'Drama'],
+          status: 'Completed'
+        },
+        {
+          _id: '6',
+          id: '6',
+          title: 'Spirited Away',
+          poster: 'https://cdn.myanimelist.net/images/anime/6/79597.jpg',
+          averageRating: 9.3,
+          rank: 6,
+          genres: ['Adventure', 'Family'],
+          status: 'Completed'
+        }
+      ];
+      setAnimeList(mockAnime);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -85,6 +189,9 @@ export default function Home(): React.ReactElement {
 
   const onRefresh = () => {
     fetchAnimeList(true);
+    if (user) {
+      checkAdFreeStatus();
+    }
   };
 
   const formatRating = (rating: number) => {
@@ -101,76 +208,84 @@ export default function Home(): React.ReactElement {
     const isTopRated = index === 0 || item.rank === 1;
     
     return (
-      
-      <TouchableOpacity
-        style={[
-          styles.animeCard,
-          isTopRated && styles.topRatedCard
-        ]}
-        onPress={() => (navigation as any).navigate('Detail', { anime: item })}
-        activeOpacity={0.8}
-      >
-        {/* Rank Badge for Top Anime */}
-        {getRankBadge(item.rank) && (
-          <View style={styles.rankBadge}>
-            <Text style={styles.rankBadgeText}>{getRankBadge(item.rank)}</Text>
-          </View>
-        )}
-
-        {/* Poster Image */}
-        <Image
-          source={{ uri: item.poster }}
+      <>
+        <TouchableOpacity
           style={[
-            styles.animePoster,
-            isTopRated && styles.topRatedPoster
+            styles.animeCard,
+            isTopRated && styles.topRatedCard
           ]}
-          resizeMode="cover"
-        />
-
-        {/* Rating Overlay */}
-        {item.averageRating > 0 && (
-          <View style={styles.ratingOverlay}>
-            <Ionicons name="star" color="#FFD700" size={16} />
-            <Text style={styles.ratingText}>
-              {formatRating(item.averageRating)}/10
-            </Text>
-          </View>
-        )}
-
-        {/* Title and Info */}
-        <View style={styles.animeInfo}>
-          <Text 
-            style={[
-              styles.animeTitle,
-              isTopRated && styles.topRatedTitle
-            ]} 
-            numberOfLines={2}
-          >
-            {item.title}
-          </Text>
-          
-          {item.genres && item.genres.length > 0 && (
-            <Text style={styles.animeGenres} numberOfLines={1}>
-              {item.genres.slice(0, 2).join(' • ')}
-            </Text>
-          )}
-          
-          {item.status && (
-            <View style={styles.statusContainer}>
-              <View style={[
-                styles.statusDot,
-                { backgroundColor: item.status === 'Completed' ? '#4CAF50' : COLORS.cyan }
-              ]} />
-              <Text style={styles.statusText}>{item.status}</Text>
+          onPress={() => navigation.navigate('Detail', { anime: item })}
+          activeOpacity={0.8}
+        >
+          {/* Rank Badge for Top Anime */}
+          {getRankBadge(item.rank) && (
+            <View style={styles.rankBadge}>
+              <Text style={styles.rankBadgeText}>{getRankBadge(item.rank)}</Text>
             </View>
           )}
-        </View>
 
-        {/* Special styling for top anime */}
-        {isTopRated && (
-          <View style={styles.topRatedBorder} />
+          {/* Poster Image */}
+          <Image
+            source={{ uri: item.poster }}
+            style={[
+              styles.animePoster,
+              isTopRated && styles.topRatedPoster
+            ]}
+            resizeMode="cover"
+          />
+
+          {/* Rating Overlay */}
+          {item.averageRating > 0 && (
+            <View style={styles.ratingOverlay}>
+              <Ionicons name="star" color="#FFD700" size={16} />
+              <Text style={styles.ratingText}>
+                {formatRating(item.averageRating)}/10
+              </Text>
+            </View>
+          )}
+
+          {/* Title and Info */}
+          <View style={styles.animeInfo}>
+            <Text 
+              style={[
+                styles.animeTitle,
+                isTopRated && styles.topRatedTitle
+              ]} 
+              numberOfLines={2}
+            >
+              {item.title}
+            </Text>
+            
+            {item.genres && item.genres.length > 0 && (
+              <Text style={styles.animeGenres} numberOfLines={1}>
+                {item.genres.slice(0, 2).join(' • ')}
+              </Text>
+            )}
+            
+            {item.status && (
+              <View style={styles.statusContainer}>
+                <View style={[
+                  styles.statusDot,
+                  { backgroundColor: item.status === 'Completed' ? '#4CAF50' : COLORS.cyan }
+                ]} />
+                <Text style={styles.statusText}>{item.status}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Special styling for top anime */}
+          {isTopRated && (
+            <View style={styles.topRatedBorder} />
+          )}
+        </TouchableOpacity>
+
+        {/* Show ad after every 4 anime cards for non-donors */}
+        {!isAdFree && user && (index + 1) % 4 === 0 && (
+          <View style={styles.adContainer}>
+            <AdBanner />
+          </View>
         )}
-      </TouchableOpacity>
+      </>
     );
   };
 
@@ -199,14 +314,21 @@ export default function Home(): React.ReactElement {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
-            source={require('../assets/images/logo.jpg')}
+            source={require('../assets/images/logo.png')}
             style={styles.logo}
           />
           <Text style={styles.appTitle}>ANIME FLOW</Text>
         </View>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" color={COLORS.text} size={24} />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          {isAdFree && (
+            <View style={styles.adFreeIndicator}>
+              <Ionicons name="star" color="#FFD700" size={16} />
+            </View>
+          )}
+          <TouchableOpacity style={styles.notificationButton}>
+            <Ionicons name="notifications-outline" color={COLORS.text} size={24} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search Bar */}
@@ -277,6 +399,7 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 12,
     fontSize: 14,
+    fontFamily: FONTS.body,
   },
 
   // Header
@@ -291,6 +414,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   logo: {
     width: 32,
     height: 32,
@@ -301,6 +429,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: FONTS.title,
     fontWeight: 'bold',
+  },
+  adFreeIndicator: {
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    borderRadius: 12,
+    padding: 4,
   },
   notificationButton: {
     padding: 8,
@@ -433,6 +566,7 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 11,
     marginBottom: 6,
+    fontFamily: FONTS.body,
   },
   statusContainer: {
     flexDirection: 'row',
@@ -448,6 +582,12 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 10,
     fontFamily: FONTS.body,
+  },
+
+  // Ad Container
+  adContainer: {
+    width: '100%',
+    marginBottom: 16,
   },
 
   // Empty State
@@ -469,6 +609,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     paddingHorizontal: 40,
+    fontFamily: FONTS.body,
   },
 
   // Tab Indicator
