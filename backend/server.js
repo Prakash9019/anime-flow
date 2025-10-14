@@ -27,6 +27,14 @@ mongoose.connect('mongodb+srv://plsprakash2003:Surya_2003@cluster0.2yh1df7.mongo
 
 // Routes
 // backend/server.js (add this line)
+// backend/server.js (add ads routes)
+const adRoutes = require('./routes/ads');
+
+// Add with your other routes
+app.use('/api/ads', adRoutes);
+
+// Serve uploaded images
+app.use('/uploads', express.static('uploads'));
 
 
 app.use('/api/auth', authRoutes);

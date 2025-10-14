@@ -11,14 +11,18 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../theme';
 
+// admin/screens/AdminPanel.tsx (add Create Ads option)
 const adminMenuItems = [
   { title: 'Post Anime Content', screen: 'PostAnimeContent', icon: 'add-circle' },
   { title: 'Edit Existing Anime Content', screen: 'EditContent', icon: 'create' },
+  { title: 'Create Ads', screen: 'CreateAds', icon: 'megaphone' }, // Add this
+  { title: 'Manage Ads', screen: 'ManageAds', icon: 'analytics' }, // Add this
   { title: 'Bulk Upload', screen: 'BulkUpload', icon: 'cloud-upload' },
   { title: 'Bulk Edit', screen: 'BulkEdit', icon: 'create-outline' },
   { title: 'Manage Account', screen: 'ManageAccount', icon: 'person-circle' },
   { title: 'Create Employees', screen: 'CreateEmployee', icon: 'people' },
 ];
+
 
 export default function AdminPanel(): React.ReactElement {
   const navigation = useNavigation();

@@ -1,28 +1,85 @@
-// components/AdBanner.tsx
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+// components/AdBanner.tsx (Updated for Cloudinary URLs)
+import React, { useEffect, useState } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { COLORS, FONTS } from '../theme';
+import ApiService from '../services/api';
 
 export default function AdBanner() {
-  const handleAdClick = () => {
-    // Handle ad click - could open browser, navigate to ad content, etc.
-    console.log('Ad clicked');
+  const [ad, setAd] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAd();
+  }, []);
+
+  const fetchAd = async () => {
+    try {
+      const response = await fetch(`${ApiService.baseURL}/ads/active`);
+      const data = await response.json();
+      
+      if (data.ads && data.ads.length > 0) {
+        // Select ad based on weight or randomly
+        const randomAd = data.ads[0]; // Highest weighted ad
+        setAd(randomAd);
+        // trackView(randomAd._id);
+      }
+    } catch (error) {
+      console.error('Error fetching ad:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // const trackView = async (adId) => {
+  //   try {
+  //     await fetch(`${ApiService.baseURL}/ads/${adId}/view`, {
+  //       method: 'POST',
+  //     });
+  //   } catch (error) {
+  //     console.error('Error tracking view:', error);
+  //   }
+  // };
+
+  const handleAdClick = async () => {
+    if (!ad) return;
+
+    try {
+      const response = await fetch(`${ApiService.baseURL}/ads/${ad._id}/click`, {
+        method: 'POST',
+      });
+      
+      const data = await response.json();
+      
+      if (ad.targetUrl) {
+        const supported = await Linking.canOpenURL(ad.targetUrl);
+        if (supported) {
+          await Linking.openURL(ad.targetUrl);
+        }
+      }
+    } catch (error) {
+      console.error('Error tracking click:', error);
+    }
+  };
+
+  if (loading || !ad) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.adLabel}>Advertisement</Text>
       <View style={styles.adContent}>
         <Image 
-          source={{ uri: 'https://via.placeholder.com/300x150/333/fff?text=Your+Ad+Here' }}
+          source={{ uri: ad.bannerImage }} // Direct Cloudinary URL
           style={styles.adImage}
+          resizeMode="cover"
         />
-        <Text style={styles.adTitle}>Support Anime Flow</Text>
-        <Text style={styles.adDescription}>
-          Help us keep the app running by supporting our sponsors
+        <Text style={styles.adTitle}>{ad.title}</Text>
+        <Text style={styles.adDescription} numberOfLines={2}>
+          {ad.description}
         </Text>
         <TouchableOpacity style={styles.ctaButton} onPress={handleAdClick}>
-          <Text style={styles.ctaText}>Learn More</Text>
+          <Text style={styles.ctaText}>{ad.ctaText}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -61,6 +118,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.title,
     fontWeight: 'bold',
     marginBottom: 8,
+    textAlign: 'center',
   },
   adDescription: {
     color: '#999',
