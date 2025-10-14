@@ -28,6 +28,7 @@ export default function DonationModal({ visible, onClose, onSuccess }: DonationM
   const predefinedAmounts = [1, 5, 10, 25, 50];
 
   const handleDonate = async () => {
+    console.log('Donate button pressed with amount:', amount);
     const donationAmount = parseFloat(amount);
     
     if (donationAmount < 1) {
@@ -45,15 +46,19 @@ export default function DonationModal({ visible, onClose, onSuccess }: DonationM
         },
         body: JSON.stringify({ amount: donationAmount }),
       });
-
+      console.log(response);
+      if (!response.ok) {
+        throw new Error('Failed to create payment intent');
+      }
       const { clientSecret, paymentIntentId } = await response.json();
+      console.log(clientSecret, paymentIntentId);
       
       // Here you would integrate with Stripe SDK for mobile payments
       // For now, we'll simulate a successful payment
       await simulatePayment(paymentIntentId, donationAmount);
       
-    } catch (error) {
-      Alert.alert('Error', 'Payment failed. Please try again.');
+    } catch (error: any) {
+      Alert.alert(error.message);
     } finally {
       setLoading(false);
     }

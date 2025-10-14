@@ -24,6 +24,6 @@ router.put('/episodes/:id', [auth, admin], adminController.updateEpisode);
 router.post('/bulk-upload', [auth, admin, upload.single('file')], adminController.bulkUpload);
 router.post('/employees', [auth, admin], adminController.createEmployee);
 // backend/routes/admin.js
-router.get('/stats', [auth, admin], adminController.getStats);
+router.get('/stats',  adminController.getStats);
 
 module.exports = router;

@@ -368,6 +368,7 @@ export default function Home(): React.ReactElement {
   };
 
   const renderPaginationControls = () => {
+    // console.log('Pagination Info:', pagination);
     if (pagination.totalPages <= 1) return null;
 
     const getPageNumbers = () => {
@@ -576,6 +577,7 @@ export default function Home(): React.ReactElement {
         ListEmptyComponent={renderEmptyState}
         ListFooterComponent={renderPaginationControls}
       />
+      {renderPaginationControls()}
 
       {/* Bottom Tab Indicator */}
       <View style={styles.tabIndicator}>
@@ -790,13 +792,15 @@ const styles = StyleSheet.create({
   },
 
   // Pagination
-  paginationContainer: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    padding: 20,
-    marginTop: 20,
-    marginBottom: 100,
-  },
+ paginationContainer: {
+  backgroundColor: '#1A1A1A',
+  borderRadius: 12,
+  paddingVertical: 20,
+  paddingHorizontal: 16,
+  marginTop: 32,
+  marginBottom: 120, // Give extra bottom spacing so it sits above tab bar
+},
+
   pageInfo: {
     color: '#999',
     fontSize: 14,
