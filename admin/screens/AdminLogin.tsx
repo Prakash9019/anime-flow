@@ -32,7 +32,7 @@ export default function AdminLogin(): React.ReactElement {
   // Admin credentials check (you can customize these)
   const isValidAdmin = (email: string, password: string) => {
     const adminCredentials = [
-      { email: 'theanimeflowOF@gmail.com', password: 'admin123456' },
+      { email: 'theanimeflow@gmail.com', password: 'admin123456' },
       { email: 'admin@animeflow.com', password: 'AnimeFlow@2025' },
       // Add more admin credentials as needed
     ];
@@ -179,12 +179,12 @@ export default function AdminLogin(): React.ReactElement {
           <Text style={styles.formTitle}>Log into Admin Mode</Text>
           
           {/* Demo credentials button */}
-          {/* <TouchableOpacity 
+          <TouchableOpacity 
             style={styles.demoButton}
             onPress={fillDemoCredentials}
           >
             <Text style={styles.demoText}>Fill Demo Credentials</Text>
-          </TouchableOpacity> */}
+          </TouchableOpacity>
           
           <TextInput
             style={[styles.input, isFilled && { borderColor: COLORS.cyan }]}

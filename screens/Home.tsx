@@ -34,6 +34,14 @@ interface AnimeItem {
   synopsis?: string;
 }
 
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 type HomeStackParamList = {
   Home: undefined;
   Detail: { anime: AnimeItem };
@@ -50,9 +58,18 @@ export default function Home(): React.ReactElement {
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [isAdFree, setIsAdFree] = useState(false);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    hasNext: false,
+    hasPrev: false
+  });
+
+  const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
-    fetchAnimeList();
+    fetchAnimeList(1, true);
     if (user) {
       checkAdFreeStatus();
     }
@@ -81,7 +98,7 @@ export default function Home(): React.ReactElement {
     }
   };
 
-  const fetchAnimeList = async (refresh = false) => {
+  const fetchAnimeList = async (page = 1, refresh = false) => {
     if (refresh) {
       setRefreshing(true);
     } else {
@@ -91,11 +108,32 @@ export default function Home(): React.ReactElement {
     try {
       const response = await ApiService.getAnimeList({
         sort: 'rating',
-        limit: 50
+        limit: ITEMS_PER_PAGE,
+        page: page,
+        search: query
       });
-      setAnimeList(response.anime || []);
+
+      const newAnimeList = response.anime || [];
+      
+      // If it's a new page load (not refresh), append to existing list
+      if (!refresh && page > 1) {
+        setAnimeList(prev => [...prev, ...newAnimeList]);
+      } else {
+        setAnimeList(newAnimeList);
+      }
+
+      // Update pagination info
+      setPagination({
+        currentPage: page,
+        totalPages: Math.ceil((response.total || 0) / ITEMS_PER_PAGE),
+        totalItems: response.total || 0,
+        hasNext: page < Math.ceil((response.total || 0) / ITEMS_PER_PAGE),
+        hasPrev: page > 1
+      });
+
     } catch (error) {
       console.error('Error fetching anime list:', error);
+      
       // Use mock data if API fails
       const mockAnime: AnimeItem[] = [
         {
@@ -159,7 +197,17 @@ export default function Home(): React.ReactElement {
           status: 'Completed'
         }
       ];
-      setAnimeList(mockAnime);
+      
+      if (page === 1) {
+        setAnimeList(mockAnime);
+        setPagination({
+          currentPage: 1,
+          totalPages: 5,
+          totalItems: 100,
+          hasNext: true,
+          hasPrev: false
+        });
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -168,8 +216,10 @@ export default function Home(): React.ReactElement {
 
   const handleSearch = async (text: string) => {
     setQuery(text);
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
+    
     if (!text.trim()) {
-      return fetchAnimeList();
+      return fetchAnimeList(1, true);
     }
 
     setSearching(true);
@@ -177,9 +227,17 @@ export default function Home(): React.ReactElement {
       const response = await ApiService.getAnimeList({
         search: text,
         sort: 'rating',
-        limit: 30
+        limit: ITEMS_PER_PAGE,
+        page: 1
       });
       setAnimeList(response.anime || []);
+      setPagination({
+        currentPage: 1,
+        totalPages: Math.ceil((response.total || 0) / ITEMS_PER_PAGE),
+        totalItems: response.total || 0,
+        hasNext: 1 < Math.ceil((response.total || 0) / ITEMS_PER_PAGE),
+        hasPrev: false
+      });
     } catch (error) {
       console.error('Error searching anime:', error);
     } finally {
@@ -188,9 +246,29 @@ export default function Home(): React.ReactElement {
   };
 
   const onRefresh = () => {
-    fetchAnimeList(true);
+    fetchAnimeList(1, true);
     if (user) {
       checkAdFreeStatus();
+    }
+  };
+
+  const goToNextPage = () => {
+    if (pagination.hasNext && !loading) {
+      const nextPage = pagination.currentPage + 1;
+      fetchAnimeList(nextPage, true);
+    }
+  };
+
+  const goToPrevPage = () => {
+    if (pagination.hasPrev && !loading) {
+      const prevPage = pagination.currentPage - 1;
+      fetchAnimeList(prevPage, true);
+    }
+  };
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= pagination.totalPages && !loading) {
+      fetchAnimeList(page, true);
     }
   };
 
@@ -289,6 +367,126 @@ export default function Home(): React.ReactElement {
     );
   };
 
+  const renderPaginationControls = () => {
+    if (pagination.totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const { currentPage, totalPages } = pagination;
+      const delta = 2;
+      const range = [];
+      const rangeWithDots = [];
+
+      for (let i = Math.max(2, currentPage - delta); 
+           i <= Math.min(totalPages - 1, currentPage + delta); 
+           i++) {
+        range.push(i);
+      }
+
+      if (currentPage - delta > 2) {
+        rangeWithDots.push(1, '...');
+      } else {
+        rangeWithDots.push(1);
+      }
+
+      rangeWithDots.push(...range);
+
+      if (currentPage + delta < totalPages - 1) {
+        rangeWithDots.push('...', totalPages);
+      } else {
+        rangeWithDots.push(totalPages);
+      }
+
+      return rangeWithDots;
+    };
+
+    return (
+      <View style={styles.paginationContainer}>
+        {/* Page Info */}
+        <Text style={styles.pageInfo}>
+          Page {pagination.currentPage} of {pagination.totalPages} • {pagination.totalItems} anime
+        </Text>
+
+        {/* Pagination Controls */}
+        <View style={styles.paginationControls}>
+          {/* Previous Button */}
+          <TouchableOpacity
+            style={[
+              styles.paginationButton,
+              !pagination.hasPrev && styles.disabledButton
+            ]}
+            onPress={goToPrevPage}
+            disabled={!pagination.hasPrev || loading}
+          >
+            <Ionicons 
+              name="chevron-back" 
+              color={pagination.hasPrev ? COLORS.cyan : '#666'} 
+              size={20} 
+            />
+            <Text style={[
+              styles.paginationButtonText,
+              !pagination.hasPrev && styles.disabledText
+            ]}>
+              Previous
+            </Text>
+          </TouchableOpacity>
+
+          {/* Page Numbers */}
+          <View style={styles.pageNumbers}>
+            {getPageNumbers().map((page, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.pageNumber,
+                  page === pagination.currentPage && styles.currentPageNumber,
+                  page === '...' && styles.dotsContainer
+                ]}
+                onPress={() => typeof page === 'number' && goToPage(page)}
+                disabled={page === '...' || loading}
+              >
+                <Text style={[
+                  styles.pageNumberText,
+                  page === pagination.currentPage && styles.currentPageText
+                ]}>
+                  {page}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Next Button */}
+          <TouchableOpacity
+            style={[
+              styles.paginationButton,
+              !pagination.hasNext && styles.disabledButton
+            ]}
+            onPress={goToNextPage}
+            disabled={!pagination.hasNext || loading}
+          >
+            <Text style={[
+              styles.paginationButtonText,
+              !pagination.hasNext && styles.disabledText
+            ]}>
+              Next
+            </Text>
+            <Ionicons 
+              name="chevron-forward" 
+              color={pagination.hasNext ? COLORS.cyan : '#666'} 
+              size={20} 
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Loading Indicator */}
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color={COLORS.cyan} size="small" />
+            <Text style={styles.loadingText}>Loading page {pagination.currentPage}...</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Ionicons name="film-outline" color="#666" size={64} />
@@ -299,7 +497,7 @@ export default function Home(): React.ReactElement {
     </View>
   );
 
-  if (loading && !refreshing) {
+  if (loading && animeList.length === 0) {
     return (
       <View style={[styles.container, styles.centered]}>
         <ActivityIndicator color={COLORS.cyan} size="large" />
@@ -376,6 +574,7 @@ export default function Home(): React.ReactElement {
           />
         }
         ListEmptyComponent={renderEmptyState}
+        ListFooterComponent={renderPaginationControls}
       />
 
       {/* Bottom Tab Indicator */}
@@ -463,7 +662,7 @@ const styles = StyleSheet.create({
   // List
   listContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 100,
+    paddingBottom: 20,
   },
   emptyListContainer: {
     flex: 1,
@@ -588,6 +787,84 @@ const styles = StyleSheet.create({
   adContainer: {
     width: '100%',
     marginBottom: 16,
+  },
+
+  // Pagination
+  paginationContainer: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 20,
+    marginBottom: 100,
+  },
+  pageInfo: {
+    color: '#999',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 16,
+    fontFamily: FONTS.body,
+  },
+  paginationControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#333',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    minWidth: 80,
+  },
+  disabledButton: {
+    backgroundColor: '#222',
+    opacity: 0.5,
+  },
+  paginationButtonText: {
+    color: COLORS.cyan,
+    fontSize: 14,
+    fontFamily: FONTS.body,
+    fontWeight: 'bold',
+  },
+  disabledText: {
+    color: '#666',
+  },
+  pageNumbers: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pageNumber: {
+    minWidth: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#333',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currentPageNumber: {
+    backgroundColor: COLORS.cyan,
+  },
+  dotsContainer: {
+    backgroundColor: 'transparent',
+  },
+  pageNumberText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontFamily: FONTS.body,
+    fontWeight: 'bold',
+  },
+  currentPageText: {
+    color: COLORS.black,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    gap: 8,
   },
 
   // Empty State

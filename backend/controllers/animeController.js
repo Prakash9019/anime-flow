@@ -6,47 +6,87 @@ const malService = require('../services/malService');
 const jikanService = require('../services/jikanServices');
 
 // Get anime list with pagination, search, and sorting
+// backend/controllers/animeController.js (Update getAnimeList)
 exports.getAnimeList = async (req, res) => {
   try {
-    const { page = 1, limit = 20, search, sort = 'rating' } = req.query;
+    const {
+      page = 1,
+      limit = 20,
+      sort = 'createdAt',
+      search,
+      genre,
+      status
+    } = req.query;
 
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build query
     let query = {};
+    
     if (search) {
-      query = {
-        $or: [
-          { title: { $regex: search, $options: 'i' } },
-          { titleEnglish: { $regex: search, $options: 'i' } },
-        ],
-      };
+      query.title = { $regex: search, $options: 'i' };
+    }
+    
+    if (genre) {
+      query.genres = { $in: [genre] };
+    }
+    
+    if (status) {
+      query.status = status;
     }
 
-    const sortOptions = {
-      rating: { averageRating: -1, mean: -1 }, // Descending by rating
-      rank: { rank: 1 },
-      title: { title: 1 },
-      popularity: { popularity: 1 },
-      newest: { createdAt: -1 },
-    };
+    // Build sort object
+    let sortObj = {};
+    switch (sort) {
+      case 'rating':
+        sortObj = { averageRating: -1, title: 1 };
+        break;
+      case 'title':
+        sortObj = { title: 1 };
+        break;
+      case 'newest':
+        sortObj = { createdAt: -1 };
+        break;
+      default:
+        sortObj = { createdAt: -1 };
+    }
 
-    const anime = await Anime.find(query)
-      .sort(sortOptions[sort] || sortOptions.rating)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .populate('episodes')
-      .lean();
+    // Execute query with pagination
+    const [anime, total] = await Promise.all([
+      Anime.find(query)
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limitNum)
+        .populate('episodes', 'number title')
+        .lean(),
+      Anime.countDocuments(query)
+    ]);
 
-    const total = await Anime.countDocuments(query);
+    // Add rank based on rating for display
+    const animeWithRank = anime.map((item, index) => ({
+      ...item,
+      rank: skip + index + 1
+    }));
 
     res.json({
-      anime,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
-      total,
+      anime: animeWithRank,
+      pagination: {
+        current: pageNum,
+        pages: Math.ceil(total / limitNum),
+        total,
+        limit: limitNum,
+        hasNext: pageNum < Math.ceil(total / limitNum),
+        hasPrev: pageNum > 1
+      }
     });
   } catch (error) {
+    console.error('Get anime list error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
 
 // Get single anime by ID with episodes and ratings
 exports.getAnimeById = async (req, res) => {

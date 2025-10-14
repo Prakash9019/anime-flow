@@ -502,8 +502,7 @@
 
 
 
-
-// admin/screens/Dashboard.tsx (Updated)
+// admin/screens/Dashboard.tsx
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -519,13 +518,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, FONTS } from '../../theme';
 import ApiService from '../../services/api';
 
-interface DashboardProps {
-  adminUser?: {
-    name: string;
-    email: string;
-  } | null;
-}
-
 interface DashboardStats {
   userLogins: number;
   ratingsSubmitted: number;
@@ -534,51 +526,27 @@ interface DashboardStats {
   totalEpisodes: number;
 }
 
-export default function Dashboard({ adminUser }: DashboardProps = {}): React.ReactElement {
+export default function Dashboard(): React.ReactElement {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [localAdminUser, setLocalAdminUser] = useState(adminUser);
 
   useEffect(() => {
-    // If adminUser is not passed as prop (when used as screen), get it from AsyncStorage
-    if (!adminUser) {
-      loadAdminUser();
-    } else {
-      setLocalAdminUser(adminUser);
-    }
     fetchStats();
-  }, [adminUser]);
-
-  const loadAdminUser = async () => {
-    try {
-      const adminData = await AsyncStorage.getItem('adminUser');
-      if (adminData) {
-        setLocalAdminUser(JSON.parse(adminData));
-      }
-    } catch (error) {
-      console.error('Error loading admin user:', error);
-    }
-  };
+  }, []);
 
   const fetchStats = async () => {
+    setLoading(true);
     try {
-      // Mock stats for now - replace with real API call
-      const mockStats = {
-        userLogins: 1000,
-        ratingsSubmitted: 10300,
-        userDownloads: 25000,
-        totalAnime: 150,
-        totalEpisodes: 3600,
-      };
-      
-      // Simulate API call
-      setTimeout(() => {
-        setStats(mockStats);
-        setLoading(false);
-      }, 1000);
+      const response = await fetch(`${ApiService.baseURL}/admin/stats`, {
+        headers: await ApiService.getAuthHeaders(),
+      });
+      const data: DashboardStats = await response.json();
+      setStats(data);
     } catch (error) {
       console.error('Error fetching stats:', error);
+      Alert.alert('Error', 'Failed to load dashboard statistics');
+    } finally {
       setLoading(false);
     }
   };
@@ -589,8 +557,8 @@ export default function Dashboard({ adminUser }: DashboardProps = {}): React.Rea
       'This will fetch latest anime data from MAL. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sync', 
+        {
+          text: 'Sync',
           onPress: async () => {
             setSyncing(true);
             try {
@@ -600,8 +568,8 @@ export default function Dashboard({ adminUser }: DashboardProps = {}): React.Rea
               });
               const result = await response.json();
               Alert.alert('Success', result.message);
-              fetchStats(); // Refresh stats
-            } catch (error) {
+              fetchStats();
+            } catch {
               Alert.alert('Error', 'Failed to sync with MAL');
             } finally {
               setSyncing(false);
@@ -630,19 +598,11 @@ export default function Dashboard({ adminUser }: DashboardProps = {}): React.Rea
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Welcome Section */}
       <View style={styles.welcomeSection}>
-        <Text style={styles.welcomeText}>Welcome Back,</Text>
-        <View style={styles.nameRow}>
-          <Text style={styles.userName}>
-            {localAdminUser?.name?.toUpperCase() || 'ADMIN'}
-          </Text>
-          <View style={styles.adminBadge}>
-            <Text style={styles.adminText}>ADMIN</Text>
-          </View>
-        </View>
+        <Text style={styles.welcomeText}>Welcome Back, ADMIN</Text>
       </View>
 
       {/* Quick Sync Action */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.syncButton, { opacity: syncing ? 0.7 : 1 }]}
         onPress={handleSyncMAL}
         disabled={syncing}
@@ -662,108 +622,81 @@ export default function Dashboard({ adminUser }: DashboardProps = {}): React.Rea
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>User Logins</Text>
           <Text style={styles.statValue}>
-            {formatNumber(stats?.userLogins || 0)}
+            {formatNumber(stats?.userLogins ?? 0)}
           </Text>
         </View>
 
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Ratings Submitted</Text>
           <Text style={styles.statValue}>
-            {formatNumber(stats?.ratingsSubmitted || 0)}
+            {formatNumber(stats?.ratingsSubmitted ?? 0)}
           </Text>
         </View>
 
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>User Downloads</Text>
           <Text style={styles.statValue}>
-            {formatNumber(stats?.userDownloads || 0)}
+            {formatNumber(stats?.userDownloads ?? 0)}
           </Text>
         </View>
+
+        {/* <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Total Anime</Text>
+          <Text style={styles.statValue}>
+            {formatNumber(stats?.totalAnime ?? 0)}
+          </Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Total Episodes</Text>
+          <Text style={styles.statValue}>
+            {formatNumber(stats?.totalEpisodes ?? 0)}
+          </Text>
+        </View> */}
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#666',
-    marginTop: 12,
-    fontSize: 14,
-  },
-  welcomeSection: {
-    marginTop: 40,
-    marginBottom: 30,
-  },
+  container: { flex: 1, padding: 20, backgroundColor: COLORS.black },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { color: COLORS.text, marginTop: 12, fontSize: 14 },
+  welcomeSection: { marginTop: 40, marginBottom: 30 },
   welcomeText: {
     color: COLORS.text,
     fontSize: 28,
     fontFamily: FONTS.title,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  userName: {
-    color: COLORS.cyan,
-    fontSize: 32,
-    fontFamily: FONTS.title,
-    fontWeight: 'bold',
-    marginRight: 12,
-  },
-  adminBadge: {
-    backgroundColor: COLORS.cyan,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  adminText: {
-    color: COLORS.black,
-    fontSize: 12,
     fontWeight: 'bold',
   },
   syncButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: COLORS.cyan,
     borderRadius: 12,
     paddingVertical: 16,
     marginBottom: 30,
-    gap: 8,
+    justifyContent: 'center',
   },
   syncText: {
     color: COLORS.black,
     fontSize: 16,
     fontFamily: FONTS.title,
     fontWeight: 'bold',
+    marginLeft: 8,
   },
-  statsContainer: {
-    gap: 20,
-  },
+  statsContainer: { flexWrap: 'wrap', flexDirection: 'row', justifyContent: 'space-between' },
   statCard: {
     backgroundColor: '#1A1A1A',
     borderRadius: 12,
-    padding: 24,
-    alignItems: 'center',
+    padding: 20,
+    width: '48%',
+    marginBottom: 16,
   },
-  statLabel: {
-    color: COLORS.text,
-    fontSize: 16,
-    marginBottom: 12,
-  },
+  statLabel: { color: COLORS.text, fontSize: 14, marginBottom: 8 },
   statValue: {
     color: COLORS.cyan,
-    fontSize: 48,
+    fontSize: 32,
     fontFamily: FONTS.title,
     fontWeight: 'bold',
   },

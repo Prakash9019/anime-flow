@@ -10,11 +10,14 @@ import BulkUpload from '../screens/BulkUpload';
 import BulkEdit from '../screens/BulkEdit';
 import AdminMain from '../screens/AdminMain';
 import AdminLogin from '../screens/AdminLogin';
+import ManageAds from '../screens/ManageAds';
+import CreateAds from '../screens/CreateAds';
 
 export type AdminParamList = {
-  AdminMain: undefined;
+    AdminMain: undefined;
   AdminPanel: undefined;
-  // Remove Dashboard from here since it's used as a component, not a screen
+  CreateAds: undefined;
+  ManageAds: undefined;
   CreateEmployee: undefined;
   ManageAccount: undefined;
   PostAnimeContent: undefined;
@@ -32,6 +35,8 @@ export default function AdminStack(): React.ReactElement {
       <Stack.Screen name="AdminMain" component={AdminMain} />
       <Stack.Screen name="AdminLogin" component={AdminLogin} />
       <Stack.Screen name="AdminPanel" component={AdminPanel} />
+      <Stack.Screen name='CreateAds' component={CreateAds} />
+      <Stack.Screen name='ManageAds' component={ManageAds} />
       {/* Remove Dashboard screen since it's used as a component inside AdminMain */}
       <Stack.Screen name="CreateEmployee" component={CreateEmployee} />
       <Stack.Screen name="ManageAccount" component={ManageAccount} />
