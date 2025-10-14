@@ -4,8 +4,9 @@ const User = require('../models/User');
 
 module.exports = async (req, res, next) => {
   try {
+    console.log("Auth middleware called");
     const token = req.header('Authorization')?.replace('Bearer ', '');
-
+    console.log("Token from header:", token);
     if (!token) {
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
