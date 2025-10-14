@@ -65,10 +65,13 @@ export default function Profile(): React.ReactElement {
   const fetchUserRatings = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${ApiService.baseURL}/user/ratings`, {
-             method: 'GET',
-        headers: await ApiService.getAuthHeaders(),
-      });
+      const headers = await ApiService.getAuthHeaders();
+        console.log("Headers for /user/ratings:", headers);
+
+        const response = await fetch(`${ApiService.baseURL}/user/ratings`, {
+            method: 'GET',
+            headers: headers, // Use the logged headers
+        });
       console.log(response)
       if (response.ok) {
         const data = await response.json();

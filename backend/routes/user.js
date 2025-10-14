@@ -11,7 +11,7 @@ const auth = require('../middleware/auth');
 const router = express.Router();
 
 // Get user's ratings
-router.get('/ratings', auth, async (req, res) => {
+router.get('/ratings',  async (req, res) => {
   try {
     const ratings = await Rating.find({ user: req.user._id })
       .populate({
