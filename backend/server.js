@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
+const userRoutes = require('./routes/user');
 const authRoutes = require('./routes/auth');
 const animeRoutes = require('./routes/anime');
 const adminRoutes = require('./routes/admin');
@@ -23,10 +24,10 @@ mongoose.connect('mongodb+srv://plsprakash2003:Surya_2003@cluster0.2yh1df7.mongo
 
 // Routes
 // backend/server.js (add this line)
-const userRoutes = require('./routes/user');
-app.use('/api/user', userRoutes);
+
 
 app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
 app.use('/api/anime', animeRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/ratings', ratingRoutes);
