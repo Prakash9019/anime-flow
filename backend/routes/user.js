@@ -33,7 +33,7 @@ router.get('/ratings', auth, async (req, res) => {
       anime: rating.anime,
       episode: rating.episode
     }));
-
+    console.log(ratings);
     res.json({ ratings: transformedRatings });
   } catch (error) {
     console.error('Get ratings error:', error);

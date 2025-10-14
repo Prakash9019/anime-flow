@@ -66,11 +66,13 @@ export default function Profile(): React.ReactElement {
     setLoading(true);
     try {
       const response = await fetch(`${ApiService.baseURL}/user/ratings`, {
+             method: 'GET',
         headers: await ApiService.getAuthHeaders(),
       });
-      
+      console.log(response)
       if (response.ok) {
         const data = await response.json();
+        console.log(data)
         setUserRatings(data.ratings || []);
       } else if (response.status === 404) {
         // Endpoint not found, use mock data or empty array

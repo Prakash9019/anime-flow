@@ -130,11 +130,13 @@ class ApiService {
 
   async init() {
     this.token = await AsyncStorage.getItem('token');
+    // console.log(this.token)
   }
 
   // Make getAuthHeaders public
   public async getAuthHeaders(): Promise<Record<string, string>> {
     const token = this.token || await AsyncStorage.getItem('token');
+    console.log(token)
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
