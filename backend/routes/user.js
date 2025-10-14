@@ -42,7 +42,7 @@ router.get('/ratings', auth, async (req, res) => {
 });
 
 // Get user profile with stats
-router.get('/profile', auth, async (req, res) => {
+router.get('/profile', async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
     if (!user) {
