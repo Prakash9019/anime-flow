@@ -33,9 +33,6 @@ const adRoutes = require('./routes/ads');
 // Add with your other routes
 app.use('/api/ads', adRoutes);
 
-// Serve uploaded images
-app.use('/uploads', express.static('uploads'));
-
 
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
