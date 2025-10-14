@@ -37,7 +37,7 @@ app.get('/', (req, res) => {
 app.get('/helath', (req, res) => {
   res.send('Welcome to AnimeFlow API');
 });
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
