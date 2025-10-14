@@ -137,7 +137,7 @@ class ApiService {
   public async getAuthHeaders(): Promise<Record<string, string>> {
     const token = this.token || await AsyncStorage.getItem('token');
     console.log(token)
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    return token ? {   'X-User-Auth': `Bearer ${token}` } : {};
   }
 
   // Auth methods

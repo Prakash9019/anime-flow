@@ -21,7 +21,7 @@ import DonationModal from '../components/DonationModal';
 
 interface UserRating {
   _id: string;
-  anime: {
+  episode: {
     _id: string;
     title: string;
     poster: string;
@@ -88,7 +88,7 @@ export default function Profile(): React.ReactElement {
       const mockRatings: UserRating[] = [
         {
           _id: '1',
-          anime: {
+          episode: {
             _id: '1',
             title: 'Attack on Titan',
             poster: 'https://cdn.myanimelist.net/images/anime/10/47347.jpg'
@@ -98,7 +98,7 @@ export default function Profile(): React.ReactElement {
         },
         {
           _id: '2',
-          anime: {
+          episode: {
             _id: '2',
             title: 'Demon Slayer',
             poster: 'https://cdn.myanimelist.net/images/anime/1286/99889.jpg'
@@ -142,10 +142,10 @@ export default function Profile(): React.ReactElement {
 
   const renderRatingItem = ({ item }: { item: UserRating }) => (
     <View style={styles.ratingCard}>
-      <Image source={{ uri: item.anime.poster }} style={styles.ratingPoster} />
+      <Image source={{ uri: 'https://cdn.myanimelist.net/images/anime/1286/99889.jpg' }} style={styles.ratingPoster} />
       <View style={styles.ratingInfo}>
         <Text style={styles.ratingTitle} numberOfLines={2}>
-          {item.anime.title}
+          {item.episode.title}
         </Text>
         <StarRating rating={item.rating} size={16} />
         <Text style={styles.ratingDate}>

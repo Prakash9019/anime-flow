@@ -14,6 +14,9 @@ const app = express();
 
 // Middleware
 app.use(cors());
+// app.use(cors({
+//   allowedHeaders: ['X-User-Auth', 'Content-Type'],
+// }));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
@@ -34,7 +37,7 @@ app.use('/api/ratings', ratingRoutes);
 app.get('/', (req, res) => {
   res.send('Welcome to AnimeFlow API');
 });
-app.get('/helath', (req, res) => {
+app.get('/health', (req, res) => {
   res.send('Welcome to AnimeFlow API');
 });
 const PORT = process.env.PORT || 5000;
