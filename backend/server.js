@@ -9,7 +9,7 @@ const authRoutes = require('./routes/auth');
 const animeRoutes = require('./routes/anime');
 const adminRoutes = require('./routes/admin');
 const ratingRoutes = require('./routes/ratings');
-
+const paymentRoutes = require('./routes/payment');
 const app = express();
 
 // Middleware
@@ -22,7 +22,7 @@ app.use('/uploads', express.static('uploads'));
 
 // Database connection
 // Make sure to set the MONGO_URI environment variable in your Cloud Run service.
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect('mongodb+srv://plsprakash2003:Surya_2003@cluster0.2yh1df7.mongodb.net/anime_flow?retryWrites=true&w=majority&ssl=true')
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 
@@ -33,7 +33,7 @@ const adRoutes = require('./routes/ads');
 
 // Add with your other routes
 app.use('/api/ads', adRoutes);
-
+app.use('/api/payment', paymentRoutes);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
