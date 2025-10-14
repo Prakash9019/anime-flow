@@ -16,9 +16,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { COLORS, FONTS } from '../../theme';
 import ApiService from '../../services/api';
+
+interface ImageAsset {
+  uri: string;
+  type?: string;
+  fileName?: string;
+}
+
+interface FormData {
+  title: string;
+  description: string;
+  ctaText: string;
+  targetUrl: string;
+  targetUsers: string;
+  priority: string;
+  budget: string;
+  costPerView: string;
+  adType: string;
+  startDate: Date;
+  endDate: Date | null;
+  bannerImage: ImageAsset | null;
+}
 
 export default function CreateAds(): React.ReactElement {
   const navigation = useNavigation();
@@ -26,8 +47,8 @@ export default function CreateAds(): React.ReactElement {
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
-  // Form state
-  const [formData, setFormData] = useState({
+  // Form state with proper typing
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     ctaText: 'Learn More',
@@ -42,7 +63,7 @@ export default function CreateAds(): React.ReactElement {
     bannerImage: null
   });
 
-  const updateFormData = (key: string, value: any) => {
+  const updateFormData = <K extends keyof FormData>(key: K, value: FormData[K]) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
@@ -63,7 +84,12 @@ export default function CreateAds(): React.ReactElement {
       });
 
       if (!result.canceled && result.assets[0]) {
-        updateFormData('bannerImage', result.assets[0]);
+        const asset = result.assets[0];
+        updateFormData('bannerImage', {
+          uri: asset.uri,
+          type: asset.type || 'image/jpeg',
+          fileName: asset.fileName || 'image.jpg'
+        });
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to select image');
@@ -83,7 +109,7 @@ export default function CreateAds(): React.ReactElement {
     );
   };
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     if (!formData.title.trim()) {
       Alert.alert('Validation Error', 'Title is required');
       return false;
@@ -125,12 +151,20 @@ export default function CreateAds(): React.ReactElement {
       }
 
       // Add other fields
-      Object.keys(formData).forEach(key => {
-        if (key !== 'bannerImage' && key !== 'endDate') {
-          formDataToSend.append(key, formData[key]);
+      const fieldsToAdd: (keyof FormData)[] = [
+        'title', 'description', 'ctaText', 'targetUrl', 
+        'targetUsers', 'priority', 'budget', 'costPerView', 'adType'
+      ];
+
+      fieldsToAdd.forEach(key => {
+        const value = formData[key];
+        if (typeof value === 'string') {
+          formDataToSend.append(key, value);
         }
       });
 
+      formDataToSend.append('startDate', formData.startDate.toISOString());
+      
       if (formData.endDate) {
         formDataToSend.append('endDate', formData.endDate.toISOString());
       }
@@ -157,6 +191,20 @@ export default function CreateAds(): React.ReactElement {
       Alert.alert('Error', 'Network error. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStartDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowStartDatePicker(false);
+    if (selectedDate) {
+      updateFormData('startDate', selectedDate);
+    }
+  };
+
+  const handleEndDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowEndDatePicker(false);
+    if (selectedDate) {
+      updateFormData('endDate', selectedDate);
     }
   };
 
@@ -331,12 +379,7 @@ export default function CreateAds(): React.ReactElement {
           value={formData.startDate}
           mode="date"
           display="default"
-          onChange={(event, selectedDate) => {
-            setShowStartDatePicker(false);
-            if (selectedDate) {
-              updateFormData('startDate', selectedDate);
-            }
-          }}
+          onChange={handleStartDateChange}
         />
       )}
 
@@ -345,12 +388,7 @@ export default function CreateAds(): React.ReactElement {
           value={formData.endDate || new Date()}
           mode="date"
           display="default"
-          onChange={(event, selectedDate) => {
-            setShowEndDatePicker(false);
-            if (selectedDate) {
-              updateFormData('endDate', selectedDate);
-            }
-          }}
+          onChange={handleEndDateChange}
         />
       )}
     </SafeAreaView>

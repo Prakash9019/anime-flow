@@ -13,12 +13,31 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, FONTS } from '../../theme';
 import ApiService from '../../services/api';
 
+interface Ad {
+  _id: string;
+  title: string;
+  description: string;
+  bannerImage: string;
+  currentViews: number;
+  targetUsers: number;
+  clicks: number;
+  isActive: boolean;
+}
+
+type AdminStackParamList = {
+  ManageAds: undefined;
+  CreateAds: undefined;
+};
+
+type ManageAdsNavigationProp = NativeStackNavigationProp<AdminStackParamList, 'ManageAds'>;
+
 export default function ManageAds(): React.ReactElement {
-  const navigation = useNavigation();
-  const [ads, setAds] = useState([]);
+  const navigation = useNavigation<ManageAdsNavigationProp>();
+  const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -47,7 +66,7 @@ export default function ManageAds(): React.ReactElement {
     }
   };
 
-  const toggleAdStatus = async (adId, currentStatus) => {
+  const toggleAdStatus = async (adId: string, currentStatus: boolean) => {
     try {
       const response = await fetch(`${ApiService.baseURL}/ads/${adId}`, {
         method: 'PUT',
@@ -67,7 +86,7 @@ export default function ManageAds(): React.ReactElement {
     }
   };
 
-  const renderAdItem = ({ item }) => (
+  const renderAdItem = ({ item }: { item: Ad }) => (
     <View style={styles.adCard}>
       <Image source={{ uri: item.bannerImage }} style={styles.adImage} />
       <View style={styles.adInfo}>

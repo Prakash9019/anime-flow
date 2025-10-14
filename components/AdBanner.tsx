@@ -1,11 +1,20 @@
-// components/AdBanner.tsx (Updated for Cloudinary URLs)
+// components/AdBanner.tsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { COLORS, FONTS } from '../theme';
 import ApiService from '../services/api';
 
+interface Ad {
+  _id: string;
+  title: string;
+  description: string;
+  bannerImage: string;
+  ctaText: string;
+  targetUrl?: string;
+}
+
 export default function AdBanner() {
-  const [ad, setAd] = useState(null);
+  const [ad, setAd] = useState<Ad | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,10 +27,9 @@ export default function AdBanner() {
       const data = await response.json();
       
       if (data.ads && data.ads.length > 0) {
-        // Select ad based on weight or randomly
-        const randomAd = data.ads[0]; // Highest weighted ad
+        const randomAd: Ad = data.ads[0];
         setAd(randomAd);
-        // trackView(randomAd._id);
+        trackView(randomAd._id);
       }
     } catch (error) {
       console.error('Error fetching ad:', error);
@@ -30,15 +38,15 @@ export default function AdBanner() {
     }
   };
 
-  // const trackView = async (adId) => {
-  //   try {
-  //     await fetch(`${ApiService.baseURL}/ads/${adId}/view`, {
-  //       method: 'POST',
-  //     });
-  //   } catch (error) {
-  //     console.error('Error tracking view:', error);
-  //   }
-  // };
+  const trackView = async (adId: string) => {
+    try {
+      await fetch(`${ApiService.baseURL}/ads/${adId}/view`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error('Error tracking view:', error);
+    }
+  };
 
   const handleAdClick = async () => {
     if (!ad) return;
@@ -70,7 +78,7 @@ export default function AdBanner() {
       <Text style={styles.adLabel}>Advertisement</Text>
       <View style={styles.adContent}>
         <Image 
-          source={{ uri: ad.bannerImage }} // Direct Cloudinary URL
+          source={{ uri: ad.bannerImage }}
           style={styles.adImage}
           resizeMode="cover"
         />

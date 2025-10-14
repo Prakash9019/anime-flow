@@ -54,9 +54,12 @@ export type HomeStackParamList = {
   Detail: { anime: AnimeItem };
 };
 
-export type AdminParamList = {
+// types/index.ts (Add admin navigation types)
+export type AdminStackParamList = {
   AdminMain: undefined;
   AdminPanel: undefined;
+  CreateAds: undefined;
+  ManageAds: undefined;
   CreateEmployee: undefined;
   ManageAccount: undefined;
   PostAnimeContent: undefined;
