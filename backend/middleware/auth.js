@@ -9,8 +9,11 @@ module.exports = async (req, res, next) => {
     if (!token) {
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
-
+    console.log("hellooooooohiiiiiii")
+    console.log(token);
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log(decoded);
+    console.log(process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId).select('-password');
 
     if (!user) {
