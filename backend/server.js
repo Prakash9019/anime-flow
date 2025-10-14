@@ -45,7 +45,7 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
   res.send('Welcome to AnimeFlow API');
 });
-const PORT = process.env.PORT || 8080;
+const PORT =  8080;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
