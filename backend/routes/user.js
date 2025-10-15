@@ -20,7 +20,12 @@ router.get('/ratings', auth, async (req, res) => {
       })
       .populate({
         path: 'episode',
-        select: 'title number'
+        select: 'title number anime',
+        populate: {
+          path: 'anime',
+          model: 'Anime',
+          select: 'title poster'
+        }
       })
       .sort({ createdAt: -1 })
       .limit(50); // Limit to recent 50 ratings
@@ -33,7 +38,6 @@ router.get('/ratings', auth, async (req, res) => {
       anime: rating.anime,
       episode: rating.episode
     }));
-    console.log(ratings);
     res.json({ ratings: transformedRatings });
   } catch (error) {
     console.error('Get ratings error:', error);
