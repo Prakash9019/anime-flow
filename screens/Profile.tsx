@@ -21,14 +21,20 @@ import DonationModal from '../components/DonationModal';
 
 interface UserRating {
   _id: string;
+  rating: number;
+  createdAt: string;
   episode: {
     _id: string;
     title: string;
-    poster: string;
+    number: number;
+    anime: {
+      _id: string;
+      title: string;
+      poster: string;
+    };
   };
-  rating: number;
-  createdAt: string;
 }
+
 
 export default function Profile(): React.ReactElement {
   const { user, logout } = useAuth();
@@ -75,7 +81,7 @@ export default function Profile(): React.ReactElement {
       console.log(response)
       if (response.ok) {
         const data = await response.json();
-        console.log(data)
+        console.log(data.ratings)
         setUserRatings(data.ratings || []);
       } else if (response.status === 404) {
         // Endpoint not found, use mock data or empty array
@@ -85,29 +91,29 @@ export default function Profile(): React.ReactElement {
     } catch (error) {
       console.error('Error fetching user ratings:', error);
       // Use mock data for demonstration
-      const mockRatings: UserRating[] = [
-        {
-          _id: '1',
-          episode: {
-            _id: '1',
-            title: 'Attack on Titan',
-            poster: 'https://cdn.myanimelist.net/images/anime/10/47347.jpg'
-          },
-          rating: 9,
-          createdAt: new Date().toISOString()
-        },
-        {
-          _id: '2',
-          episode: {
-            _id: '2',
-            title: 'Demon Slayer',
-            poster: 'https://cdn.myanimelist.net/images/anime/1286/99889.jpg'
-          },
-          rating: 8,
-          createdAt: new Date().toISOString()
-        }
-      ];
-      setUserRatings(mockRatings);
+      // const mockRatings: UserRating[] = [
+      //   {
+      //     _id: '1',
+      //     episode: {
+      //       _id: '1',
+      //       title: 'Attack on Titan',
+      //       // poster: 'https://cdn.myanimelist.net/images/anime/10/47347.jpg'
+      //     },
+      //     rating: 9,
+      //     createdAt: new Date().toISOString()
+      //   },
+      //   {
+      //     _id: '2',
+      //     episode: {
+      //       _id: '2',
+      //       title: 'Demon Slayer',
+      //       poster: 'https://cdn.myanimelist.net/images/anime/1286/99889.jpg'
+      //     },
+      //     rating: 8,
+      //     createdAt: new Date().toISOString()
+      //   }
+      // ];
+      // setUserRatings(mockRatings);
     } finally {
       setLoading(false);
     }
@@ -142,7 +148,7 @@ export default function Profile(): React.ReactElement {
 
   const renderRatingItem = ({ item }: { item: UserRating }) => (
     <View style={styles.ratingCard}>
-      <Image source={{ uri: item.episode.poster }} style={styles.ratingPoster} />
+      <Image source={{ uri: item.episode?.anime?.poster }} style={styles.ratingPoster} />
       <View style={styles.ratingInfo}>
         <Text style={styles.ratingTitle} numberOfLines={2}>
           {item.episode.title}

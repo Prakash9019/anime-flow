@@ -88,6 +88,8 @@ export default function Home(): React.ReactElement {
       
       if (response.ok) {
         const data = await response.json();
+        console.log(data)
+        console.log(user);
         setIsAdFree(data.isAdFree || false);
       } else {
         setIsAdFree(false);
@@ -395,7 +397,7 @@ export default function Home(): React.ReactElement {
         <Image
           source={{ uri: item.poster }}
           style={styles.animePoster}
-          resizeMode="cover"
+          resizeMode="contain"
         />
 
         {/* Title and Info */}
@@ -419,7 +421,7 @@ export default function Home(): React.ReactElement {
       </TouchableOpacity>
 
       {/* Show ad after every 4 anime cards for non-donors */}
-      {!isAdFree && user && (index + 1) % 4 === 0 && (
+      {!isAdFree && user && (index ) % 4 === 0 && (
         <View style={styles.adContainer}>
           <AdBanner />
         </View>
@@ -620,12 +622,12 @@ export default function Home(): React.ReactElement {
         data={animeList}
         renderItem={renderAnimeCard}
         keyExtractor={(item) => item._id || item.id}
-        numColumns={2}
+        numColumns={1}
         contentContainerStyle={[
           styles.listContainer,
           animeList.length === 0 && styles.emptyListContainer
         ]}
-        columnWrapperStyle={styles.row}
+        // columnWrapperStyle={styles.row}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -736,7 +738,7 @@ const styles = StyleSheet.create({
 
   // Anime Cards
   animeCard: {
-    width: '48%',
+    width: '100%',
     backgroundColor: '#1A1A1A',
     borderRadius: 12,
     marginBottom: 16,
@@ -779,10 +781,15 @@ const styles = StyleSheet.create({
   },
 
   // Poster
-  animePoster: {
-    width: '100%',
-    height: 200,
-  },
+animePoster: {
+  width: '100%',
+  height: 200,
+  resizeMode: 'contain', // Fit image inside without cropping or distortion
+  borderRadius: 12,
+  backgroundColor: '#000' // Optional: prevents blank spaces from white background
+},
+
+
   topRatedPoster: {
     height: 220,
   },
@@ -874,28 +881,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+
+
+
   paginationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#333',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    minWidth: 80,
-  },
-  disabledButton: {
-    backgroundColor: '#222',
-    opacity: 0.5,
-  },
-  paginationButtonText: {
-    color: COLORS.cyan,
-    fontSize: 14,
-    fontFamily: FONTS.body,
-    fontWeight: 'bold',
-  },
-  disabledText: {
-    color: '#666',
-  },
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#444',     // Darker gray for visibility on dark background
+  paddingHorizontal: 16,
+  paddingVertical: 10,
+  borderRadius: 8,
+  minWidth: 80,
+},
+disabledButton: {
+  backgroundColor: '#222',
+  opacity: 0.5,
+},
+paginationButtonText: {
+  color: COLORS.cyan,
+  fontSize: 14,
+  fontFamily: FONTS.body,
+  fontWeight: 'bold',
+},
+disabledText: {
+  color: '#555',
+},
+
+
+
+
   pageNumbers: {
     flexDirection: 'row',
     alignItems: 'center',

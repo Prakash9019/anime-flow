@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../theme';
 import ApiService from '../services/api';
+import PaymentModal from '../components/PaymentModal';
 
 interface DonationModalProps {
   visible: boolean;
@@ -26,42 +27,54 @@ export default function DonationModal({ visible, onClose, onSuccess }: DonationM
   const [customAmount, setCustomAmount] = useState(false);
 
   const predefinedAmounts = [1, 5, 10, 25, 50];
+const [showPaymentModal, setShowPaymentModal] = useState(false);
+const [donationAmount, setDonationAmount] = useState(100);
 
+
+const handlePaymentSuccess = () => {
+  // Refresh user data to show ad-free status
+    Alert.alert(
+          'Thank You!',
+          `Your donation of $${amount} has been processed successfully. You now have ad-free access!`,
+          [{ text: 'OK', onPress: () => { onSuccess(); onClose(); } }]
+        );
+};
   const handleDonate = async () => {
     console.log('Donate button pressed with amount:', amount);
-    const donationAmount = parseFloat(amount);
+    setShowPaymentModal(true);
+    // const donationAmount = parseFloat(amount);
     
-    if (donationAmount < 1) {
-      Alert.alert('Invalid Amount', 'Minimum donation amount is $1');
-      return;
-    }
+    // if (donationAmount < 1) {
+    //   Alert.alert('Invalid Amount', 'Minimum donation amount is $1');
+    //   return;
+    // }
 
-    setLoading(true);
-    try {
-      const response = await fetch(`${ApiService.baseURL}/payment/create-donation-intent`, {
-        method: 'POST',
-        headers: {
-          ...await ApiService.getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ amount: donationAmount }),
-      });
-      console.log(response);
-      if (!response.ok) {
-        throw new Error('Failed to create payment intent');
-      }
-      const { clientSecret, paymentIntentId } = await response.json();
-      console.log(clientSecret, paymentIntentId);
+    // setLoading(true);
+    // try {
+    //   const response = await fetch(`${ApiService.baseURL}/payment/create-donation-intent`, {
+    //     method: 'POST',
+    //     headers: {
+    //       ...await ApiService.getAuthHeaders(),
+    //       'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify({ amount: donationAmount }),
+    //   });
+    //   console.log(response);
+    //   if (!response.ok) {
+    //     throw new Error('Failed to create payment intent');
+    //   }
+    //   const { clientSecret, paymentIntentId } = await response.json();
+    //   console.log(clientSecret, paymentIntentId);
       
-      // Here you would integrate with Stripe SDK for mobile payments
-      // For now, we'll simulate a successful payment
-      await simulatePayment(paymentIntentId, donationAmount);
+    //   // Here you would integrate with Stripe SDK for mobile payments
+    //   // For now, we'll simulate a successful payment
+    //   await simulatePayment(paymentIntentId, donationAmount);
       
-    } catch (error: any) {
-      Alert.alert(error.message);
-    } finally {
-      setLoading(false);
-    }
+    // } catch (error: any) {
+    //   Alert.alert(error.message);
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   const simulatePayment = async (paymentIntentId: string, amount: number) => {
@@ -177,6 +190,12 @@ export default function DonationModal({ visible, onClose, onSuccess }: DonationM
                 <Text style={styles.donateButtonText}>Donate ${amount || '0'}</Text>
               )}
             </TouchableOpacity>
+               <PaymentModal
+      visible={showPaymentModal}
+      onClose={() => setShowPaymentModal(false)}
+      amount={Number(amount)}
+      onSuccess={handlePaymentSuccess}
+    />
           </View>
         </View>
       </View>

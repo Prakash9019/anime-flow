@@ -79,10 +79,12 @@ export default function Detail(): React.ReactElement {
   }, [animeId]);
 
   const loadAnimeDetails = async () => {
+    console.log("Loading anime details for ID:", animeId);
     if (!animeId) return;
     setLoading(true);
     try {
       const data = await ApiService.getAnimeById(animeId);
+      console.log("Fetched anime data:", data);
       setAnimeData(data);
       setEpisodes(data.episodes || []);
     } catch (error) {
@@ -115,7 +117,7 @@ export default function Detail(): React.ReactElement {
   const formatRating = (rating: number) => rating ? `${rating.toFixed(1)}/10` : 'Not rated';
 
   const renderEpisode = ({ item }: { item: Episode }) => (
-    <View style={styles.episodeCard}>
+    <View style={styles.episodeCard} key={item._id}>
       <Image
         source={{ uri: item.thumbnail || animeData?.poster }}
         style={styles.episodeThumbnail}

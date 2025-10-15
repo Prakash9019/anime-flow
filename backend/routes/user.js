@@ -7,7 +7,7 @@ const Donation = require('../models/Donation');
 const Episode = require('../models/Episode');
 const Anime = require('../models/Anime');
 const auth = require('../middleware/auth');
-
+const stripe = require('../config/stripe');
 const router = express.Router();
 
 // Get user's ratings
@@ -422,6 +422,20 @@ router.put('/preferences', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Mock payment processing function (replace with actual payment gateway)
 async function processPayment(paymentData) {
   // Simulate payment processing delay
@@ -444,7 +458,7 @@ async function processPayment(paymentData) {
 }
 
 // backend/routes/user.js
-router.post('/donate', auth, async (req, res) => {
+router.post('/donate_test', auth, async (req, res) => {
   try {
     const { amount, paymentMethod, cardNumber, expiryDate, cvv, cardName, upiId } = req.body;
 
@@ -521,6 +535,25 @@ router.post('/donate', auth, async (req, res) => {
   }
 });
 
+router.post('/donate', auth, async (req, res) => {
+  try {
+    const { amount, paymentMethod, cardNumber, expiryDate, cvv, cardName, upiId } = req.body;
+    // validation omitted for brevity
 
+    // Create PaymentIntent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // in paise
+      currency: 'inr',
+      payment_method_types: paymentMethod === 'card' ? ['card'] : ['upi'],
+      metadata: { userId: req.user._id.toString() }
+    });
+
+    // Return client secret to frontend
+    return res.json({ clientSecret: paymentIntent.client_secret });
+  } catch (error) {
+    console.error('Stripe error:', error);
+    return res.status(500).json({ message: 'Payment initialization failed' });
+  }
+});
 
 module.exports = router;

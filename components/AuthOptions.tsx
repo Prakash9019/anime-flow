@@ -2,9 +2,9 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
+  Text,Platform,
+  TouchableOpacity,ScrollView,
+  StyleSheet,  KeyboardAvoidingView,
   TextInput,
   Alert,
   ActivityIndicator,
@@ -18,6 +18,8 @@ import { COLORS, SIZES, FONTS } from '../theme';
 import ApiService from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { RootStackParamList } from '../types';
+import { Keyboard, TouchableWithoutFeedback } from 'react-native';
+
 
 interface AuthOptionsProps {
   visible: boolean;
@@ -236,16 +238,29 @@ export default function AuthOptions({ visible, onClose }: AuthOptionsProps) {
   );
 
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}> 
     <Modal 
-      isVisible={visible} 
-      onBackdropPress={() => {
-        resetForm();
-        onClose();
-      }} 
-      style={styles.modal}
-    >
-      {authMode === 'select' ? renderAuthSelection() : renderEmailForm()}
-    </Modal>
+  isVisible={visible} 
+  onBackdropPress={() => {
+   resetForm();
+   onClose();
+  }} 
+  style={styles.modal}
+  avoidKeyboard={true} // <-- Important for react-native-modal
+ >
+  <KeyboardAvoidingView
+   behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+   style={{ flex: 1 }}
+  >
+   <ScrollView 
+    contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }} 
+    keyboardShouldPersistTaps="handled"
+   >
+    {authMode === 'select' ? renderAuthSelection() : renderEmailForm()}
+   </ScrollView>
+  </KeyboardAvoidingView>
+ </Modal>
+    </TouchableWithoutFeedback>
   );
 }
 
