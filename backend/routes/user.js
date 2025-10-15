@@ -422,5 +422,105 @@ router.put('/preferences', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+// Mock payment processing function (replace with actual payment gateway)
+async function processPayment(paymentData) {
+  // Simulate payment processing delay
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  // Mock success/failure logic
+  const success = Math.random() > 0.1; // 90% success rate for demo
+
+  if (success) {
+    return {
+      success: true,
+      paymentId: `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    };
+  } else {
+    return {
+      success: false,
+      error: 'Payment declined by bank',
+    };
+  }
+}
+
+// backend/routes/user.js
+router.post('/donate', auth, async (req, res) => {
+  try {
+    const { amount, paymentMethod, cardNumber, expiryDate, cvv, cardName, upiId } = req.body;
+
+    // Validation
+    if (!amount || amount < 1) {
+      return res.status(400).json({ message: 'Invalid donation amount' });
+    }
+
+    if (!paymentMethod || !['card', 'upi'].includes(paymentMethod)) {
+      return res.status(400).json({ message: 'Invalid payment method' });
+    }
+
+    // Validate payment details based on method
+    if (paymentMethod === 'card') {
+      if (!cardNumber || !expiryDate || !cvv || !cardName) {
+        return res.status(400).json({ message: 'All card details are required' });
+      }
+      
+      // Basic card validation
+      if (cardNumber.length < 16) {
+        return res.status(400).json({ message: 'Invalid card number' });
+      }
+    }
+
+    if (paymentMethod === 'upi') {
+      if (!upiId || !upiId.includes('@')) {
+        return res.status(400).json({ message: 'Invalid UPI ID' });
+      }
+    }
+
+    // Simulate payment processing (replace with actual payment gateway integration)
+    const paymentResult = await processPayment({
+      amount,
+      paymentMethod,
+      cardNumber: paymentMethod === 'card' ? cardNumber.slice(-4) : null, // Only store last 4 digits
+      upiId: paymentMethod === 'upi' ? upiId : null,
+    });
+
+    if (!paymentResult.success) {
+      return res.status(400).json({ message: paymentResult.error || 'Payment failed' });
+    }
+
+    // Create donation record
+    const donation = new Donation({
+      user: req.user._id,
+      amount,
+      paymentMethod,
+      paymentId: paymentResult.paymentId,
+      status: 'completed',
+      createdAt: new Date(),
+    });
+
+    await donation.save();
+
+    // Grant ad-free access
+    await User.findByIdAndUpdate(req.user._id, {
+      isAdFree: true,
+      adFreeGrantedAt: new Date(),
+    });
+
+    res.json({
+      success: true,
+      message: 'Donation successful! Thank you for supporting Anime Flow.',
+      donation: {
+        id: donation._id,
+        amount: donation.amount,
+        paymentMethod: donation.paymentMethod,
+        createdAt: donation.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error('Donation error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+
 
 module.exports = router;
