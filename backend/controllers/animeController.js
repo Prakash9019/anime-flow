@@ -156,9 +156,9 @@ exports.getAnimeList = async (req, res) => {
 // Get single anime by ID with episodes and ratings
 exports.getAnimeById = async (req, res) => {
   try {
-    const anime = await Anime.findById(req.params.id);
-      // .populate('episodes')
-      // .populate('userRatings.user', 'name avatar');
+    const anime = await Anime.findById(req.params.id)
+      .populate('episodes')
+      .populate('userRatings.user', 'name avatar');
 
     if (!anime) {
       return res.status(404).json({ message: 'Anime not found' });
