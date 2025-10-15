@@ -57,35 +57,22 @@ export default function AdminLogin(): React.ReactElement {
 
     try {
       // Option 1: Use hardcoded admin check (simple)
-      if (isValidAdmin(email, password)) {
-        // Store admin session
-        await AsyncStorage.setItem('adminToken', 'admin-authenticated');
-        await AsyncStorage.setItem('adminUser', JSON.stringify({
-          email: email,
-          // name: email.split('@')[0],
-          name: "Admin",
-          isAdmin: true,
-          loginTime: new Date().toISOString()
-        }));
-        
-        Alert.alert('Success', 'Welcome to Admin Panel!', [
-          { text: 'Continue', onPress: () => navigation.replace('AdminMain') }
-        ]);
-        return;
-      }
+    
 
       // Option 2: Use backend authentication (advanced)
-      const response = await fetch(`${ApiService.baseURL}/auth/admin-login`, {
+      const response = await fetch(`${ApiService.baseURL}/admin/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-
+      console.log("hii suryaaaa")
       const data = await response.json();
-
-      if (response.ok && data.user?.isAdmin) {
+      console.log(data);
+      console.log(response)
+      if (response && data.user?.name) {
         // Store admin credentials
         await AsyncStorage.setItem('adminToken', data.token);
+        console.log("hii suryaaaa")
         await AsyncStorage.setItem('adminUser', JSON.stringify(data.user));
         
         Alert.alert('Success', `Welcome back, ${data.user.name}!`, [

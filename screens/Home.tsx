@@ -282,90 +282,151 @@ export default function Home(): React.ReactElement {
     return null;
   };
 
-  const renderAnimeCard = ({ item, index }: { item: AnimeItem; index: number }) => {
-    const isTopRated = index === 0 || item.rank === 1;
+  // const renderAnimeCard = ({ item, index }: { item: AnimeItem; index: number }) => {
+  //   const isTopRated = index === 0 || item.rank === 1;
     
-    return (
-      <>
-        <TouchableOpacity
-          style={[
-            styles.animeCard,
-            isTopRated && styles.topRatedCard
-          ]}
-          onPress={() => navigation.navigate('Detail', { anime: item })}
-          activeOpacity={0.8}
-        >
-          {/* Rank Badge for Top Anime */}
-          {getRankBadge(item.rank) && (
-            <View style={styles.rankBadge}>
-              <Text style={styles.rankBadgeText}>{getRankBadge(item.rank)}</Text>
-            </View>
-          )}
+  //   return (
+  //     <>
+  //       <TouchableOpacity
+  //         style={[
+  //           styles.animeCard,
+  //           isTopRated && styles.topRatedCard
+  //         ]}
+  //         onPress={() => navigation.navigate('Detail', { anime: item })}
+  //         activeOpacity={0.8}
+  //       >
+  //         {/* Rank Badge for Top Anime */}
+  //         {getRankBadge(item.rank) && (
+  //           <View style={styles.rankBadge}>
+  //             <Text style={styles.rankBadgeText}>{getRankBadge(item.rank)}</Text>
+  //           </View>
+  //         )}
 
-          {/* Poster Image */}
-          <Image
-            source={{ uri: item.poster }}
-            style={[
-              styles.animePoster,
-              isTopRated && styles.topRatedPoster
-            ]}
-            resizeMode="cover"
-          />
+  //         {/* Poster Image */}
+  //         <Image
+  //           source={{ uri: item.poster }}
+  //           style={[
+  //             styles.animePoster,
+  //             isTopRated && styles.topRatedPoster
+  //           ]}
+  //           resizeMode="cover"
+  //         />
 
-          {/* Rating Overlay */}
-          {item.averageRating > 0 && (
-            <View style={styles.ratingOverlay}>
-              <Ionicons name="star" color="#FFD700" size={16} />
-              <Text style={styles.ratingText}>
-                {formatRating(item.averageRating)}/10
-              </Text>
-            </View>
-          )}
+  //         {/* Rating Overlay */}
+  //         {item.averageRating > 0 && (
+  //           <View style={styles.ratingOverlay}>
+  //             <Ionicons name="star" color="#FFD700" size={16} />
+  //             <Text style={styles.ratingText}>
+  //               {formatRating(item.averageRating)}/10
+  //             </Text>
+  //           </View>
+  //         )}
 
-          {/* Title and Info */}
-          <View style={styles.animeInfo}>
-            <Text 
-              style={[
-                styles.animeTitle,
-                isTopRated && styles.topRatedTitle
-              ]} 
-              numberOfLines={2}
-            >
-              {item.title}
+  //         {/* Title and Info */}
+  //         <View style={styles.animeInfo}>
+  //           <Text 
+  //             style={[
+  //               styles.animeTitle,
+  //               isTopRated && styles.topRatedTitle
+  //             ]} 
+  //             numberOfLines={2}
+  //           >
+  //             {item.title}
+  //           </Text>
+            
+  //           {item.genres && item.genres.length > 0 && (
+  //             <Text style={styles.animeGenres} numberOfLines={1}>
+  //               {item.genres.slice(0, 2).join(' • ')}
+  //             </Text>
+  //           )}
+            
+  //           {item.status && (
+  //             <View style={styles.statusContainer}>
+  //               <View style={[
+  //                 styles.statusDot,
+  //                 { backgroundColor: item.status === 'Completed' ? '#4CAF50' : COLORS.cyan }
+  //               ]} />
+  //               <Text style={styles.statusText}>{item.status}</Text>
+  //             </View>
+  //           )}
+  //         </View>
+
+  //         {/* Special styling for top anime */}
+  //         {isTopRated && (
+  //           <View style={styles.topRatedBorder} />
+  //         )}
+  //       </TouchableOpacity>
+
+  //       {/* Show ad after every 4 anime cards for non-donors */}
+  //       {!isAdFree && user && (index + 1) % 4 === 0 && (
+  //         <View style={styles.adContainer}>
+  //           <AdBanner />
+  //         </View>
+  //       )}
+  //     </>
+  //   );
+  // };
+
+  const renderAnimeCard = ({ item, index }: { item: AnimeItem; index: number }) => {
+  const displayRating = item.averageRating || 0;
+  const displayRank = item.rank || index + 1;
+
+  return (
+    <>
+      <TouchableOpacity
+        style={styles.animeCard}
+        onPress={() => navigation.navigate('Detail', { anime: item })}
+        activeOpacity={0.8}
+      >
+        {/* Rank Badge (Top Left) */}
+        <View style={styles.rankBadge}>
+          <Text style={styles.rankBadgeText}>#{displayRank}</Text>
+        </View>
+
+        {/* Rating Badge (Top Right) */}
+        <View style={styles.ratingBadge}>
+          <Ionicons name="star" color="#FFD700" size={14} />
+          <Text style={styles.ratingBadgeText}>
+            {displayRating.toFixed(1)}
+          </Text>
+        </View>
+
+        {/* Poster Image */}
+        <Image
+          source={{ uri: item.poster }}
+          style={styles.animePoster}
+          resizeMode="cover"
+        />
+
+        {/* Title and Info */}
+        <View style={styles.animeInfo}>
+          <Text style={styles.animeTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
+          
+          {item.genres && item.genres.length > 0 && (
+            <Text style={styles.animeGenres} numberOfLines={1}>
+              {item.genres.slice(0, 2).join(' • ')}
             </Text>
-            
-            {item.genres && item.genres.length > 0 && (
-              <Text style={styles.animeGenres} numberOfLines={1}>
-                {item.genres.slice(0, 2).join(' • ')}
-              </Text>
-            )}
-            
-            {item.status && (
-              <View style={styles.statusContainer}>
-                <View style={[
-                  styles.statusDot,
-                  { backgroundColor: item.status === 'Completed' ? '#4CAF50' : COLORS.cyan }
-                ]} />
-                <Text style={styles.statusText}>{item.status}</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Special styling for top anime */}
-          {isTopRated && (
-            <View style={styles.topRatedBorder} />
           )}
-        </TouchableOpacity>
 
-        {/* Show ad after every 4 anime cards for non-donors */}
-        {!isAdFree && user && (index + 1) % 4 === 0 && (
-          <View style={styles.adContainer}>
-            <AdBanner />
-          </View>
-        )}
-      </>
-    );
-  };
+          {/* {item.ratedEpisodesCount && (
+            <Text style={styles.ratedEpisodesText}>
+              Based on {item.ratedEpisodesCount} episode{item.ratedEpisodesCount > 1 ? 's' : ''}
+            </Text>
+          )} */}
+        </View>
+      </TouchableOpacity>
+
+      {/* Show ad after every 4 anime cards for non-donors */}
+      {!isAdFree && user && (index + 1) % 4 === 0 && (
+        <View style={styles.adContainer}>
+          <AdBanner />
+        </View>
+      )}
+    </>
+  );
+};
 
   const renderPaginationControls = () => {
     // console.log('Pagination Info:', pagination);
@@ -906,4 +967,34 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.cyan,
     width: '50%',
   },
+
+  //new stylees 
+
+  // Rating Badge (Top Right)
+  ratingBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    zIndex: 2,
+  },
+  ratingBadgeText: {
+    color: '#FFD700',
+    fontSize: 13,
+    marginLeft: 4,
+    fontFamily: FONTS.body,
+    fontWeight: 'bold',
+  },
+  ratedEpisodesText: {
+    color: '#666',
+    fontSize: 10,
+    fontFamily: FONTS.body,
+    fontStyle: 'italic',
+  },
+
 });

@@ -134,11 +134,15 @@ class ApiService {
   }
 
   // Make getAuthHeaders public
-  public async getAuthHeaders(): Promise<Record<string, string>> {
-    const token = this.token || await AsyncStorage.getItem('token');
-    console.log(token)
-    return token ? {   'X-User-Auth': `Bearer ${token}` } : {};
-  }
+// services/api.ts
+public async getAuthHeaders(): Promise<Record<string,string>> {
+  const adminToken = await AsyncStorage.getItem('adminToken');
+  const userToken  = await AsyncStorage.getItem('token');
+  const token = adminToken || userToken;
+  console.log('Using auth token:', token);
+  if (!token) return {};
+  return { 'X-User-Auth': `Bearer ${token}` };
+}
 
   // Auth methods
   async login(email: string, password: string) {

@@ -142,7 +142,7 @@ export default function Profile(): React.ReactElement {
 
   const renderRatingItem = ({ item }: { item: UserRating }) => (
     <View style={styles.ratingCard}>
-      <Image source={{ uri: 'https://cdn.myanimelist.net/images/anime/1286/99889.jpg' }} style={styles.ratingPoster} />
+      <Image source={{ uri: item.episode.poster }} style={styles.ratingPoster} />
       <View style={styles.ratingInfo}>
         <Text style={styles.ratingTitle} numberOfLines={2}>
           {item.episode.title}
