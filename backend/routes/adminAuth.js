@@ -21,7 +21,7 @@ router.post('/login', async (req, res) => {
     // Find admin user
     const user = await User.findOne({ 
       email: email.toLowerCase(),
-      role: { $in: ['admin', 'superadmin'] }
+    //   role: { $in: ['admin', 'superadmin'] }
     }).select('+password');
     console.log(user);
     if (!user) {
@@ -29,10 +29,10 @@ router.post('/login', async (req, res) => {
     }
 
     // Verify password
-    // const isValidPassword = await bcrypt.compare(password, user.password);
-    // if (!isValidPassword) {
-    //   return res.status(401).json({ message: 'Invalid admin credentials22' });
-    // }
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid admin credentials22' });
+    }
 
  
 
@@ -89,14 +89,11 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     // Create admin user
     const newAdmin = new User({
       name,
       email: email.toLowerCase(),
-      password: hashedPassword,
+      password,
       role: role || 'admin',
       isActive: true
     });

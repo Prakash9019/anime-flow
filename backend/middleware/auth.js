@@ -15,8 +15,8 @@ module.exports = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log(decoded);
     console.log(process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password');
-
+    const user = await User.findById(decoded.userId || decoded._id).select('-password');
+      console.log(user);
     if (!user) {
       return res.status(401).json({ message: 'Token is not valid' });
     }
