@@ -73,7 +73,7 @@
 const express = require('express');
 // NOTE: Use environment variable for the secret key for production/testing
 // For testing, set process.env.STRIPE_SECRET_KEY to 'sk_test_...'
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'sk_test_51SGjE8BjlYTxejjmQL1FVjtoOXpLefXuPvO3HRPyynMsEn586IMOiHW6mJRePzvEz5srmpITeGnwK5kZdxDRMB9i00tBUPNIPR'); // Fallback to your test key
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY_TEST ); // Fallback to your test key
 
 const User = require('../models/User'); // Assuming these models exist
 const Donation = require('../models/Donation');

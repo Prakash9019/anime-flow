@@ -5,11 +5,15 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useFonts } from 'expo-font';
 // import AppLoading from 'expo-app-loading';
 import { StatusBar } from 'expo-status-bar';
-
+import { StripeProvider } from '@stripe/stripe-react-native';
 import AdminLogin from './admin/screens/AdminLogin';
 import AdminStack from './admin/navigation/AdminStack';
 import UserAuth from './screens/Auth';
 import UserTabs from './navigation/BottomTabs';
+const isProduction = process.env.NODE_ENV === 'production';
+
+const publishableKey = isProduction ? 'pk_live_...' : 'pk_test_...'; // Your Test Key
+
 
 type RootStackParamList = {
   UserAuth: undefined;
@@ -26,6 +30,8 @@ export default function App() {
 
   return (
     <>
+
+<StripeProvider publishableKey={publishableKey}>
       <StatusBar style="light" />
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -38,6 +44,7 @@ export default function App() {
           <Stack.Screen name="AdminMain" component={AdminStack} />
         </Stack.Navigator>
       </NavigationContainer>
+      </StripeProvider>
     </>
   );
 }
