@@ -690,5 +690,6 @@ module.exports = {
   syncAllEpisodes: exports.syncAllEpisodes,
   syncEpisodesFromJikan: exports.syncEpisodesFromJikan,
   searchAnime: exports.searchAnime,
+  updateAnimeDetails: exports.updateAnimeDetails
 };
 
