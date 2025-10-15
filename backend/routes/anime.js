@@ -32,7 +32,7 @@ const router = express.Router();
 // Public routes
 router.get('/', animeController.getAnimeList);
 router.get('/:id', animeController.getAnimeById);
-
+router.put('/:id', animeController.updateAnimeDetails);
 // User routes (requires authentication)
 router.post('/rate', auth, animeController.rateAnime);
 router.post('/rate-episode', auth, animeController.rateEpisode);

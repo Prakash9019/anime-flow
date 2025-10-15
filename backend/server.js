@@ -30,6 +30,8 @@ mongoose.connect('mongodb+srv://plsprakash2003:Surya_2003@cluster0.2yh1df7.mongo
 // backend/server.js (add this line)
 // backend/server.js (add ads routes)
 const adRoutes = require('./routes/ads');
+const adminAccountRoutes = require('./routes/adminAccount');
+app.use('/api/admin/account', adminAccountRoutes);
 
 // Add with your other routes
 app.use('/api/ads', adRoutes);

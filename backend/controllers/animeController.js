@@ -5,80 +5,145 @@ const Rating = require('../models/Rating');
 const malService = require('../services/malService');
 const jikanService = require('../services/jikanServices');
 
-// Get anime list with pagination, search, and sorting
-// backend/controllers/animeController.js (Update getAnimeList)
+// exports.getAnimeList = async (req, res) => {
+//   try {
+//     const {
+//       page = 1,
+//       limit = 20,
+//       sort = 'createdAt',
+//       search,
+//       genre,
+//       status
+//     } = req.query;
+
+//     const pageNum = parseInt(page);
+//     const limitNum = parseInt(limit);
+//     const skip = (pageNum - 1) * limitNum;
+
+//     // Build query
+//     let query = {};
+    
+//     if (search) {
+//       query.title = { $regex: search, $options: 'i' };
+//     }
+    
+//     if (genre) {
+//       query.genres = { $in: [genre] };
+//     }
+    
+//     if (status) {
+//       query.status = status;
+//     }
+
+//     // Build sort object
+//     let sortObj = {};
+//     switch (sort) {
+//       case 'rating':
+//         sortObj = { averageRating: -1, title: 1 };
+//         break;
+//       case 'title':
+//         sortObj = { title: 1 };
+//         break;
+//       case 'newest':
+//         sortObj = { createdAt: -1 };
+//         break;
+//       default:
+//         sortObj = { createdAt: -1 };
+//     }
+
+//     // Execute query with pagination
+//     const [anime, total] = await Promise.all([
+//       Anime.find(query)
+//         .sort(sortObj)
+//         .skip(skip)
+//         .limit(limitNum)
+//         .populate('episodes', 'number title')
+//         .lean(),
+//       Anime.countDocuments(query)
+//     ]);
+
+//     // Add rank based on rating for display
+//     const animeWithRank = anime.map((item, index) => ({
+//       ...item,
+//       rank: skip + index + 1
+//     }));
+
+//     res.json({
+//       anime: animeWithRank,
+//       pagination: {
+//         current: pageNum,
+//         pages: Math.ceil(total / limitNum),
+//         total,
+//         limit: limitNum,
+//         hasNext: pageNum < Math.ceil(total / limitNum),
+//         hasPrev: pageNum > 1
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Get anime list error:', error);
+//     res.status(500).json({ message: 'Server error', error: error.message });
+//   }
+// };
+
+// controllers/animeController.js
 exports.getAnimeList = async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      sort = 'createdAt',
-      search,
-      genre,
-      status
-    } = req.query;
+    const { page = 1, limit = 20, search } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
-    const skip = (pageNum - 1) * limitNum;
-
-    // Build query
     let query = {};
-    
     if (search) {
       query.title = { $regex: search, $options: 'i' };
     }
-    
-    if (genre) {
-      query.genres = { $in: [genre] };
-    }
-    
-    if (status) {
-      query.status = status;
-    }
 
-    // Build sort object
-    let sortObj = {};
-    switch (sort) {
-      case 'rating':
-        sortObj = { averageRating: -1, title: 1 };
-        break;
-      case 'title':
-        sortObj = { title: 1 };
-        break;
-      case 'newest':
-        sortObj = { createdAt: -1 };
-        break;
-      default:
-        sortObj = { createdAt: -1 };
-    }
+    // Get all anime
+    const animeList = await Anime.find(query)
+      .populate('episodes')
+      .lean();
 
-    // Execute query with pagination
-    const [anime, total] = await Promise.all([
-      Anime.find(query)
-        .sort(sortObj)
-        .skip(skip)
-        .limit(limitNum)
-        .populate('episodes', 'number title')
-        .lean(),
-      Anime.countDocuments(query)
-    ]);
+    // Calculate average rating for each anime from its episodes
+    const animeWithRatings = animeList.map(anime => {
+      let totalRating = 0;
+      let ratedEpisodesCount = 0;
 
-    // Add rank based on rating for display
-    const animeWithRank = anime.map((item, index) => ({
-      ...item,
-      rank: skip + index + 1
+      if (anime.episodes && anime.episodes.length > 0) {
+        anime.episodes.forEach(episode => {
+          if (episode.averageRating > 0) {
+            totalRating += episode.averageRating;
+            ratedEpisodesCount++;
+          }
+        });
+      }
+
+      const averageRating = ratedEpisodesCount > 0 
+        ? totalRating / ratedEpisodesCount 
+        : 0;
+
+      return {
+        ...anime,
+        averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
+        ratedEpisodesCount
+      };
+    });
+
+    // Sort by average rating (highest first)
+    animeWithRatings.sort((a, b) => b.averageRating - a.averageRating);
+
+    // Add rank based on sorted position
+    const rankedAnime = animeWithRatings.map((anime, index) => ({
+      ...anime,
+      rank: index + 1
     }));
 
+    // Paginate results
+    const paginatedAnime = rankedAnime.slice(skip, skip + parseInt(limit));
+
     res.json({
-      anime: animeWithRank,
+      anime: paginatedAnime,
       pagination: {
-        current: pageNum,
-        pages: Math.ceil(total / limitNum),
-        total,
-        limit: limitNum,
-        hasNext: pageNum < Math.ceil(total / limitNum),
-        hasPrev: pageNum > 1
+        current: parseInt(page),
+        total: rankedAnime.length,
+        pages: Math.ceil(rankedAnime.length / parseInt(limit)),
       }
     });
   } catch (error) {
@@ -91,9 +156,9 @@ exports.getAnimeList = async (req, res) => {
 // Get single anime by ID with episodes and ratings
 exports.getAnimeById = async (req, res) => {
   try {
-    const anime = await Anime.findById(req.params.id)
-      .populate('episodes')
-      .populate('userRatings.user', 'name avatar');
+    const anime = await Anime.findById(req.params.id);
+      // .populate('episodes')
+      // .populate('userRatings.user', 'name avatar');
 
     if (!anime) {
       return res.status(404).json({ message: 'Anime not found' });
@@ -105,6 +170,19 @@ exports.getAnimeById = async (req, res) => {
   }
 };
 
+exports.updateAnimeDetails = async (req, res) => {
+  try {
+    const anime = await Anime.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!anime) return res.status(404).json({ message: 'Anime not found' });
+    res.json({ message: 'Anime updated successfully', anime });
+  } catch (err) {
+    res.status(500).json({ message: 'Update failed', error: err.message });
+  }
+}
 // Rate an anime
 exports.rateAnime = async (req, res) => {
   try {
@@ -354,6 +432,28 @@ exports.searchAnime = async (req, res) => {
     res.status(500).json({ message: 'Search failed', error: error.message });
   }
 };
+
+// When an episode is rated, update the parent anime's average rating
+const updateAnimeAverageRating = async (animeId) => {
+  const anime = await Anime.findById(animeId).populate('episodes');
+  
+  let totalRating = 0;
+  let ratedCount = 0;
+
+  anime.episodes.forEach(ep => {
+    if (ep.averageRating > 0) {
+      totalRating += ep.averageRating;
+      ratedCount++;
+    }
+  });
+
+  const averageRating = ratedCount > 0 ? totalRating / ratedCount : 0;
+  
+  await Anime.findByIdAndUpdate(animeId, { 
+    averageRating: Math.round(averageRating * 10) / 10 
+  });
+};
+
 // backend/controllers/animeController.js (update rateEpisode function)
 exports.rateEpisode = async (req, res) => {
   try {
@@ -365,6 +465,7 @@ exports.rateEpisode = async (req, res) => {
     }
 
     const episode = await Episode.findById(episodeId).populate('anime');
+    await updateAnimeAverageRating(episode.anime._id);
     if (!episode) {
       return res.status(404).json({ message: 'Episode not found' });
     }
