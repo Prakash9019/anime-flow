@@ -12,7 +12,7 @@ import UserAuth from './screens/Auth';
 import UserTabs from './navigation/BottomTabs';
 const isProduction = process.env.NODE_ENV === 'production';
 
-const publishableKey = isProduction ? 'pk_live_...' : 'pk_test_...'; // Your Test Key
+const publishableKey = isProduction ? 'pk_live_...' : 'pk_test_51SGjE8BjlYTxejjmomdvZa05REahMpnTFmGv4UvQmjRomph6mbD3CYD3ZZkyVCkFD7df3ELbwcDnYFnafRpTOG5500mG6ASKRE'; // Your Test Key
 
 
 type RootStackParamList = {

@@ -243,7 +243,7 @@
 //               >
 //                 <Ionicons 
 //                   name="card" 
-//                   color={paymentMethod === 'card' ? COLORS.black : COLORS.text} 
+//                   color={paymentMethod === 'card' ? (COLORS.black || '#000') : (COLORS.text || '#FFF')} 
 //                   size={20} 
 //                 />
 //                 <Text style={[
@@ -264,7 +264,7 @@
 //               >
 //                 <Ionicons 
 //                   name="phone-portrait" 
-//                   color={paymentMethod === 'upi' ? COLORS.black : COLORS.text} 
+//                   color={paymentMethod === 'upi' ? (COLORS.black || '#000') : (COLORS.text || '#FFF')} 
 //                   size={20} 
 //                 />
 //                 <Text style={[
@@ -490,8 +490,11 @@
 //     textAlign: 'center',
 //   },
 // });
+
+
+
 // components/PaymentModal.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -507,7 +510,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { 
   useStripe, 
   CardField, 
-  CardDetails 
+  usePaymentSheet,
+  PaymentSheetError,
+  InitPaymentSheetResult, 
 } from '@stripe/stripe-react-native';
 import { COLORS } from '../theme'; // Assuming COLORS is defined
 import ApiService from '../services/api'; // Assuming ApiService is defined
@@ -519,48 +524,69 @@ interface PaymentModalProps {
   onSuccess: () => void;
 }
 
+// Define the type for card details using the exported event type structure
+type CardDetailsType = {
+    complete: boolean;
+    brand: string;
+    last4: string;
+} | null;
+
+// Define available payment methods
+type PaymentMethodType = 'sheet' | 'card';
+
 export default function PaymentModal({ visible, onClose, amount, onSuccess }: PaymentModalProps) {
   const { confirmPayment } = useStripe();
+  const { initPaymentSheet, presentPaymentSheet, loading: sheetLoading } = usePaymentSheet();
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [cardDetails, setCardDetails] = useState<CardDetails | null>(null); 
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('sheet');
+  const [cardDetails, setCardDetails] = useState<CardDetailsType>(null); 
   const [loading, setLoading] = useState(false);
   
   const dollarAmount = amount / 100; // Display amount
+  const canPayWithCard = paymentMethod === 'card' && cardDetails?.complete && clientSecret;
+  const canPayWithSheet = paymentMethod === 'sheet' && clientSecret && !sheetLoading;
+
+  const resetAndClose = useCallback(() => {
+  setClientSecret(null);
+  setCardDetails(null);
+  setPaymentMethod('sheet');
+  onClose();
+}, [onClose]);
+
+  // ---------------------------------------------------------------------
+  // 1. PAYMENT INTENT CREATION
+  // ---------------------------------------------------------------------
 
   const initializePayment = useCallback(async () => {
     if (amount <= 0) return;
 
     setLoading(true);
-    setClientSecret(null); // Reset secret
+    setClientSecret(null); 
     try {
-      // NOTE: Using the standard endpoint from your backend (payment.js)
       const res = await fetch(`${ApiService.baseURL}/payment/create-donation-intent`, {
         method: 'POST',
         headers: {
-          ...await ApiService.getAuthHeaders(), // Use your auth headers
+          ...await ApiService.getAuthHeaders(),
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ amount }), // amount is in cents
+        body: JSON.stringify({ amount }),
       });
 
       const data = await res.json();
-      console.log('Payment Intent Response:', data);
-
       if (data.clientSecret) {
         setClientSecret(data.clientSecret);
       } else {
         Alert.alert('Error', data.message || 'Failed to initialize payment intent.');
-        onClose();
+        resetAndClose();
       }
     } catch (error) {
-      console.error('Initialize Payment Error:', error);
       Alert.alert('Error', 'Network error or failed to connect to server.');
-      onClose();
+      resetAndClose();
     } finally {
       setLoading(false);
     }
-  }, [amount, onClose]);
+  }, [amount, resetAndClose]);
 
   useEffect(() => {
     if (visible) {
@@ -568,60 +594,222 @@ export default function PaymentModal({ visible, onClose, amount, onSuccess }: Pa
     }
   }, [visible, initializePayment]);
 
+  // ---------------------------------------------------------------------
+  // 2. PAYMENT SHEET (Apple Pay/Google Pay) SETUP
+  // ---------------------------------------------------------------------
 
-  const handleConfirm = async () => {
-    if (!clientSecret) {
-      Alert.alert('Error', 'Payment is not initialized. Please try again.');
-      return;
-    }
-    if (!cardDetails || !cardDetails.complete) {
-      Alert.alert('Error', 'Please enter complete and valid card details.');
-      return;
-    }
+  const initializePaymentSheet = useCallback(async (secret: string) => {
+    const { error }: InitPaymentSheetResult = await initPaymentSheet({
+      merchantDisplayName: "AnimeFlow Donor",
+      paymentIntentClientSecret: secret,
+      allowsDelayedPaymentMethods: true,
+      
+      // Use customerId if you want to reuse payment methods
+      // customerId: 'some_user_id', 
+      
+      googlePay: {
+        merchantCountryCode: 'US',
+        testEnv: process.env.NODE_ENV !== 'production',
+        currencyCode: 'USD',
+      },
+      applePay: {
+        merchantCountryCode: 'US',
+      },
+      defaultBillingDetails: {
+          email: 'user@example.com' 
+      }
+    });
 
-    setLoading(true);
+    if (error) {
+      console.log('Payment Sheet setup failed:', error.message);
+    }
+  }, [initPaymentSheet]);
+
+  useEffect(() => {
+    if (clientSecret && paymentMethod === 'sheet') {
+      initializePaymentSheet(clientSecret);
+    }
+  }, [clientSecret, initializePaymentSheet, paymentMethod]);
+
+
+  // ---------------------------------------------------------------------
+  // 3. PAYMENT HANDLERS
+  // ---------------------------------------------------------------------
+
+  const confirmBackendDonation = async (paymentIntentId: string) => {
     try {
+        // Send the PaymentIntent ID to the server for final confirmation and user upgrade
+        await fetch(`${ApiService.baseURL}/payment/confirm-donation`, {
+            method: 'POST',
+            headers: {
+                ...await ApiService.getAuthHeaders(),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ paymentIntentId, amount: dollarAmount }),
+        });
+        onSuccess();
+        resetAndClose();
+    } catch (e) {
+        Alert.alert('Error', 'Payment succeeded but failed to confirm donation on server.');
+        resetAndClose();
+    }
+  }
+
+  const handlePayPress = async () => {
+    if (!clientSecret) {
+      Alert.alert('Error', 'Payment not ready.');
+      return;
+    }
+    
+    // --- Sheet Payment (Apple Pay/Google Pay/Saved Cards) ---
+    if (paymentMethod === 'sheet') {
+      // FIX: presentPaymentSheet only returns an error or nothing (success)
+      const { error } = await presentPaymentSheet(); 
+
+      if (error) {
+        if (error.code !== PaymentSheetError.Canceled) {
+          Alert.alert('Payment Failed', error.message);
+        }
+      } else {
+        // Assume success for simple PaymentIntent flow
+        Alert.alert('Success', 'Payment is processing!', [
+            // Use clientSecret as the ID since the sheet completed the payment for us
+            { text: 'OK', onPress: () => confirmBackendDonation(clientSecret!) } 
+        ]);
+      }
+      return;
+    }
+
+    // --- CardField Payment ---
+    if (paymentMethod === 'card') {
+      if (!cardDetails || !cardDetails.complete) {
+        Alert.alert('Error', 'Please enter complete and valid card details.');
+        return;
+      }
+
+      setLoading(true);
       const { paymentIntent, error } = await confirmPayment(clientSecret, {
         paymentMethodType: 'Card',
-        // Card details are implicitly passed from the CardField context
       });
 
       if (error) {
         Alert.alert('Payment Failed', error.message || 'Payment processing failed.');
       } else if (paymentIntent?.status === 'Succeeded') {
-        
-        // Final call to your backend to confirm, log, and grant ad-free access
-        await fetch(`${ApiService.baseURL}/payment/confirm-donation`, {
-          method: 'POST',
-          headers: {
-            ...await ApiService.getAuthHeaders(),
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ paymentIntentId: paymentIntent.id, amount: dollarAmount }),
-        });
-
         Alert.alert('Payment Successful! 🎉', `Thank you for donating $${dollarAmount.toFixed(2)}!`, [
-          { text: 'OK', onPress: () => { onSuccess(); onClose(); } },
+          { text: 'OK', onPress: () => confirmBackendDonation(paymentIntent.id) },
         ]);
       } else {
-         Alert.alert('Payment Status', `Payment status: ${paymentIntent?.status}`);
+        Alert.alert('Payment Status', `Payment status: ${paymentIntent?.status}`);
       }
-    } catch (error) {
-      console.error('Confirm Payment Error:', error);
-      Alert.alert('Error', 'An unexpected error occurred during payment confirmation.');
-    } finally {
       setLoading(false);
     }
   };
 
-  const resetAndClose = () => {
-    setClientSecret(null);
-    setCardDetails(null);
-    onClose();
-  }
 
-  // --- Styles implementation (minimal for brevity, use your full styles) ---
-  const styles = StyleSheet.create({
+  // --- JSX & Styles (Minimal for brevity) ---
+
+  return (
+    <Modal isVisible={visible} onBackdropPress={resetAndClose} style={styles.modal}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+        <View style={styles.sheet}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Complete Donation</Text>
+            <TouchableOpacity onPress={resetAndClose} disabled={loading || sheetLoading}>
+              <Ionicons name="close" color={COLORS.text || '#FFF'} size={24} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.amountContainer}>
+            <Text style={styles.amountLabel}>Donation Amount</Text>
+            <Text style={styles.amountText}>${dollarAmount.toFixed(2)}</Text>
+          </View>
+          
+          {/* Payment Method Selection */}
+          <View style={styles.methodContainer}>
+            <TouchableOpacity
+              style={[styles.methodButton, paymentMethod === 'sheet' && styles.selectedMethod]}
+              onPress={() => setPaymentMethod('sheet')}
+              disabled={loading || sheetLoading || !clientSecret}
+            >
+              <Ionicons name="wallet-outline" color={paymentMethod === 'sheet' ? (COLORS.black || '#000') : (COLORS.text || '#FFF')} size={20} />
+              <Text style={[styles.methodText, paymentMethod === 'sheet' && styles.selectedMethodText]}>
+                Wallet / Quick Pay
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.methodButton, paymentMethod === 'card' && styles.selectedMethod]}
+              onPress={() => setPaymentMethod('card')}
+              disabled={loading || sheetLoading || !clientSecret}
+            >
+              <Ionicons name="card-outline" color={paymentMethod === 'card' ? (COLORS.black || '#000') : (COLORS.text || '#FFF')} size={20} />
+              <Text style={[styles.methodText, paymentMethod === 'card' && styles.selectedMethodText]}>
+                New Card
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Card Field Form (Only visible when 'card' is selected) */}
+          {paymentMethod === 'card' && (
+            <View style={styles.formContainer}>
+              <Text style={styles.sectionTitle}>Secure Card Details</Text>
+              
+              {loading && !clientSecret ? (
+                <View style={styles.loadingCard}>
+                  <ActivityIndicator color={COLORS.cyan || '#00FFFF'} size="large" />
+                  <Text style={styles.loadingText}>Initializing Payment...</Text>
+                </View>
+              ) : (
+                <CardField
+                  postalCodeEnabled={false}
+                  placeholders={{ 
+                    number: 'Card Number',
+                    expiration: 'MM/YY',
+                    cvc: 'CVC',
+                  }}
+                  cardStyle={{
+                    backgroundColor: '#2C2C2E',
+                    textColor: COLORS.text || '#FFF',
+                    placeholderColor: '#666',
+                    fontSize: 16,
+                    borderRadius: 12,
+                  }}
+                  style={styles.cardField}
+                  onCardChange={(event: any) => setCardDetails(event.details)} 
+                  disabled={loading || sheetLoading}
+                />
+              )}
+            </View>
+          )}
+
+          {/* Payment Button */}
+          <TouchableOpacity
+            style={[
+              styles.payButton, 
+              { opacity: (loading || sheetLoading || (!canPayWithSheet && !canPayWithCard)) ? 0.7 : 1 }
+            ]}
+            onPress={() => {handlePayPress()}}
+            disabled={loading || sheetLoading || (!canPayWithSheet && !canPayWithCard)}
+          >
+            {(loading || sheetLoading) ? (
+              <ActivityIndicator color={COLORS.black || '#000'} />
+            ) : (
+              <Text style={styles.payButtonText}>
+                {paymentMethod === 'sheet' ? 'Pay with Sheet (Google/Apple Pay)' : `Pay $${dollarAmount.toFixed(2)}`}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <Text style={styles.secureText}>
+            🔒 Powered by Stripe (Apple Pay/Google Pay enabled)
+          </Text>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
     modal: { justifyContent: 'flex-end', margin: 0 },
     container: { flex: 1, justifyContent: 'flex-end' },
     sheet: { backgroundColor: '#1B1B1D', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, maxHeight: '90%' },
@@ -638,182 +826,9 @@ export default function PaymentModal({ visible, onClose, amount, onSuccess }: Pa
     payButton: { backgroundColor: COLORS.cyan || '#00FFFF', borderRadius: 12, padding: 18, alignItems: 'center', marginBottom: 16 },
     payButtonText: { color: COLORS.black || '#000', fontSize: 18, fontWeight: 'bold' },
     secureText: { color: '#666', fontSize: 12, textAlign: 'center' },
+    methodButton: { padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#333', marginHorizontal: 5, flexDirection: 'row', alignItems: 'center' },
+    selectedMethod: { backgroundColor: COLORS.cyan || '#00FFFF', borderColor: COLORS.cyan || '#00FFFF' },
+    methodText: { color: COLORS.text || '#FFF', marginLeft: 5, fontWeight: 'bold' },
+    selectedMethodText: { color: COLORS.black || '#000' },
+    methodContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 20 },
   });
-  // -------------------------------------------------------------------------
-
-  return (
-    <Modal
-      isVisible={visible}
-      onBackdropPress={() => {
-        if (!loading) resetAndClose();
-      }}
-      style={styles.modal}
-    >
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <View style={styles.sheet}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Complete Payment</Text>
-            <TouchableOpacity onPress={resetAndClose} disabled={loading}>
-              <Ionicons name="close" color={COLORS.text || '#FFF'} size={24} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.amountContainer}>
-            <Text style={styles.amountLabel}>Donation Amount</Text>
-            <Text style={styles.amountText}>${dollarAmount.toFixed(2)}</Text>
-          </View>
-
-          <View style={styles.formContainer}>
-            <Text style={styles.sectionTitle}>Secure Card Details</Text>
-            
-            {loading && !clientSecret ? (
-              <View style={styles.loadingCard}>
-                 <ActivityIndicator color={COLORS.cyan || '#00FFFF'} size="large" />
-                 <Text style={styles.loadingText}>Initializing Payment...</Text>
-              </View>
-            ) : (
-              <CardField
-                postalCodeEnabled={false}
-                placeholders={{ 
-                  number: 'Card Number',
-                  expiration: 'MM/YY',
-                  cvc: 'CVC',
-                }}
-                cardStyle={{
-                  backgroundColor: '#2C2C2E',
-                  textColor: COLORS.text || '#FFF',
-                  placeholderColor: '#666',
-                  fontSize: 16,
-                  borderRadius: 12,
-                }}
-                style={styles.cardField}
-                onCardChange={(event: any) => setCardDetails(event.details)} 
-                disabled={loading}
-              />
-            )}
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.payButton, 
-              { opacity: (loading || !cardDetails?.complete || !clientSecret) ? 0.7 : 1 }
-            ]}
-            onPress={handleConfirm}
-            disabled={loading || !cardDetails?.complete || !clientSecret}
-          >
-            {loading ? (
-              <ActivityIndicator color={COLORS.black || '#000'} />
-            ) : (
-              <Text style={styles.payButtonText}>
-                Pay ${dollarAmount.toFixed(2)}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <Text style={styles.secureText}>
-            🔒 Payments secured by Stripe
-          </Text>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
-  );
-}
-
-const styles = StyleSheet.create({
-  modal: {
-    justifyContent: 'flex-end',
-    margin: 0,
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: '#1B1B1D',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-    maxHeight: '90%',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 20,
-    // fontFamily: FONTS.title,
-    fontWeight: 'bold',
-  },
-  amountContainer: {
-    backgroundColor: '#2C2C2E',
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  amountLabel: {
-    color: '#999',
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  amountText: {
-    color: COLORS.cyan,
-    fontSize: 32,
-    // fontFamily: FONTS.title,
-    fontWeight: 'bold',
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: 16,
-    // fontFamily: FONTS.title,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  formContainer: {
-    marginBottom: 24,
-  },
-  cardField: {
-    width: '100%',
-    height: 50,
-    marginVertical: 10,
-  },
-  loadingCard: {
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#2C2C2E',
-    borderRadius: 12,
-    flexDirection: 'row',
-    gap: 10,
-  },
-  loadingText: {
-    color: COLORS.text,
-    fontSize: 16,
-  },
-  payButton: {
-    backgroundColor: COLORS.cyan,
-    borderRadius: 12,
-    padding: 18,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  payButtonText: {
-    color: COLORS.black,
-    fontSize: 18,
-    // fontFamily: FONTS.title,
-    fontWeight: 'bold',
-  },
-  secureText: {
-    color: '#666',
-    fontSize: 12,
-    textAlign: 'center',
-  },
-});
