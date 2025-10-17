@@ -179,22 +179,32 @@ public async getAuthHeaders(): Promise<Record<string,string>> {
     return data;
   }
 
-  async googleAuth(googleData: any) {
-    const response = await fetch(`${API_BASE_URL}/auth/google`, {
+ // services/api.ts (add or update this method)
+async googleAuth(googleData: { googleId: string; name: string; email: string; avatar: string | null }) {
+  try {
+    const response = await fetch(`${this.baseURL}/auth/google`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(googleData),
     });
+
     const data = await response.json();
     
-    if (response.ok) {
-      this.token = data.token;
-      await AsyncStorage.setItem('token', data.token);
+    if (response.ok && data.token) {
+      await AsyncStorage.setItem('userToken', data.token);
       await AsyncStorage.setItem('user', JSON.stringify(data.user));
+      return { success: true, user: data.user, token: data.token };
     }
     
-    return data;
+    return { success: false, message: data.message || 'Authentication failed' };
+  } catch (error) {
+    console.error('API googleAuth error:', error);
+    return { success: false, message: 'Network error' };
   }
+}
+
 
   async logout() {
     this.token = null;

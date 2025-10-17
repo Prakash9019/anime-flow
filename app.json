@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.suryap2003.animeflow2",
+      "bundleIdentifier": "com.surya.animeflow2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -26,19 +26,18 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.suryap_2003.animeflow2"
+      "package": "com.surya.animeflow2"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font",
       [
         "@react-native-google-signin/google-signin",
         {
-          "iosClientId": "554236244715-u7kms8qsntj4079atfttvo2jei5m75rc.apps.googleusercontent.com",
-          "webClientId": "554236244715-4qpomofhim5vncie4bsaqrl3f9hlr3o7.apps.googleusercontent.com",
-          "iosUrlScheme": "com.googleusercontent.apps.554236244715-u7kms8qsntj4079atfttvo2jei5m75rc"
+          "iosClientId": "113504609626-gjjfcr46vmtgrmq621ifemb8c6a1ck06.apps.googleusercontent.com",
+          "webClientId": "113504609626-na30qijm5tne0sen5bq49d0lku1hlecq.apps.googleusercontent.com",
+          "iosUrlScheme": "com.googleusercontent.apps.113504609626-gjjfcr46vmtgrmq621ifemb8c6a1ck06"
         }
       ]
     ],

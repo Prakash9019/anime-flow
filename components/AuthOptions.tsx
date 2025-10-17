@@ -1,25 +1,33 @@
 // components/AuthOptions.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,Platform,
-  TouchableOpacity,ScrollView,
-  StyleSheet,  KeyboardAvoidingView,
+  Text,
+  Platform,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
   TextInput,
   Alert,
   ActivityIndicator,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import Modal from 'react-native-modal';
 import { FontAwesome } from '@expo/vector-icons';
-import { GoogleSignin, statusCodes, User as GoogleUser } from '@react-native-google-signin/google-signin';
+import {
+  GoogleSignin,
+  GoogleSigninButton,
+  statusCodes,
+   isSuccessResponse,
+  isErrorWithCode,
+} from '@react-native-google-signin/google-signin';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SIZES, FONTS } from '../theme';
 import ApiService from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { RootStackParamList } from '../types';
-import { Keyboard, TouchableWithoutFeedback } from 'react-native';
-
 
 interface AuthOptionsProps {
   visible: boolean;
@@ -28,18 +36,10 @@ interface AuthOptionsProps {
 
 type AuthNavProp = NativeStackNavigationProp<RootStackParamList>;
 
-// Configure Google Sign-In
 GoogleSignin.configure({
-  webClientId: '554236244715-4qpomofhim5vncie4bsaqrl3f9hlr3o7.apps.googleusercontent.com', // From Google Console
+  webClientId: '113504609626-na30qijm5tne0sen5bq49d0lku1hlecq.apps.googleusercontent.com', // 👈 your Web client ID
   offlineAccess: true,
 });
-// Rename to avoid conflict
-interface GoogleProfile {
-  id: string;
-  name: string;
-  email: string;
-  photo: string | null;
-}
 
 export default function AuthOptions({ visible, onClose }: AuthOptionsProps) {
   const navigation = useNavigation<AuthNavProp>();
@@ -51,46 +51,71 @@ export default function AuthOptions({ visible, onClose }: AuthOptionsProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  const handleGoogleSignIn = async () => {
-    try {
-      setLoading(true);
-      console.log("hello");
-      await GoogleSignin.hasPlayServices();
-      const userInfo : any = await GoogleSignin.signIn();
-      console.log("hiiii");
-      console.log(userInfo);
-      // Fix: Access userInfo.data.user instead of userInfo.user
-      //     const user: GoogleUser = {
-      //   id: userInfo.id,
-      //   name: userInfo.name,
-      //   email: userInfo.email,
-      //   photo: userInfo.picture,
-      // };
-        // ✅ Extract the correct data
-    const profile = userInfo.user;
-
-    const googleData = {
-      googleId: profile.id,
-      name: profile.name,
-      email: profile.email,
-      avatar: profile.photo,
-    };
-
-      const result = await ApiService.googleAuth(googleData);
-      if (result.user) {
-        onClose();
-        navigation.replace('UserMain');
-      } else {
-        Alert.alert('Error', result.message || 'Google sign-in failed');
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (event) => {
+        setKeyboardHeight(event.endCoordinates.height);
       }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
+    const handleGoogleSignIn = async () => {
+    // if (loading) return;
+    setLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      console.log('Initiating Google Sign-In...');
+    const response = await GoogleSignin.signIn();
+
+    
+    if (isSuccessResponse(response)) {
+      console.log('Google Sign-In Response:', response);
+      const userInfo = response.data?.user;
+      const idToken = response.data?.idToken;
+
+      if (!userInfo || !idToken) {
+        Alert.alert('Error', 'No ID token or user info found from Google');
+        setLoading(false);
+        return;
+      }
+  
+     const userPayload = {
+        googleId: userInfo.id,
+        name: userInfo.name ?? "",      // 👈 fallback to empty string
+        email: userInfo.email,
+        avatar: userInfo.photo ?? null, // null is okay because it's typed that way
+      };
+      console.log('Google user info:', userInfo);
+      const res = await ApiService.googleAuth(userPayload);
+      console.log('Login success:', res);      // await saveToken(res.data.token);
+
+      Alert.alert('Success', 'Google login successful!');
+    } else {
+      Alert.alert('Cancelled', 'User cancelled sign-in flow');
+    }
     } catch (error: any) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        console.log('User cancelled sign-in');
+        // User cancelled the login flow
       } else if (error.code === statusCodes.IN_PROGRESS) {
-        console.log('Sign-in in progress');
+        Alert.alert('In Progress', 'Sign-in already in progress');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Play services not available or outdated');
       } else {
-        Alert.alert('Error', 'Google sign-in failed');
+        Alert.alert('Error', `Google sign-in failed: ${error.message}`);
       }
     } finally {
       setLoading(false);
@@ -133,7 +158,7 @@ export default function AuthOptions({ visible, onClose }: AuthOptionsProps) {
   };
 
   const renderAuthSelection = () => (
-    <View style={styles.sheet}>
+    <View style={[styles.sheet, { paddingBottom: (Platform.OS === 'ios' ? 40 : 30) + keyboardHeight }]}>
       <View style={styles.grabber} />
       <Text style={styles.heading}>Continue with</Text>
       
@@ -143,12 +168,17 @@ export default function AuthOptions({ visible, onClose }: AuthOptionsProps) {
           onPress={handleGoogleSignIn}
           disabled={loading}
         >
-          <FontAwesome name="google" size={24} color="#000" />
+          {loading ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <FontAwesome name="google" size={24} color="#000" />
+          )}
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={styles.iconBtn}
           onPress={() => setAuthMode('login')}
+          disabled={loading}
         >
           <FontAwesome name="envelope-o" size={24} color="#000" />
         </TouchableOpacity>
@@ -157,6 +187,7 @@ export default function AuthOptions({ visible, onClose }: AuthOptionsProps) {
       <TouchableOpacity 
         style={styles.registerButton}
         onPress={() => setAuthMode('register')}
+        disabled={loading}
       >
         <Text style={styles.registerText}>Create New Account</Text>
       </TouchableOpacity>
@@ -164,103 +195,110 @@ export default function AuthOptions({ visible, onClose }: AuthOptionsProps) {
       <Text style={styles.terms}>
         By continuing, you agree to Anime Flow's Terms and Privacy Policy
       </Text>
-
-      {loading && <ActivityIndicator color={COLORS.cyan} style={styles.loader} />}
     </View>
   );
 
   const renderEmailForm = () => (
-    <View style={styles.sheet}>
-      <View style={styles.grabber} />
-      <Text style={styles.heading}>
-        {authMode === 'login' ? 'Sign In' : 'Create Account'}
-      </Text>
-
-      {authMode === 'register' && (
-        <TextInput
-          style={styles.input}
-          placeholder="Full Name"
-          placeholderTextColor="#666"
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
-        />
-      )}
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#666"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#666"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
-      <TouchableOpacity 
-        style={[styles.submitButton, { opacity: loading ? 0.7 : 1 }]}
-        onPress={handleEmailAuth}
-        disabled={loading}
-      >
-        <Text style={styles.submitText}>
-          {loading ? 'Please wait...' : (authMode === 'login' ? 'SIGN IN' : 'CREATE ACCOUNT')}
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={[styles.sheet, { paddingBottom: (Platform.OS === 'ios' ? 40 : 30) + keyboardHeight }]}>
+        <View style={styles.grabber} />
+        <Text style={styles.heading}>
+          {authMode === 'login' ? 'Sign In' : 'Create Account'}
         </Text>
-      </TouchableOpacity>
 
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={resetForm}
-      >
-        <Text style={styles.backText}>← Back to options</Text>
-      </TouchableOpacity>
+        <ScrollView 
+          style={styles.formScrollView}
+          contentContainerStyle={styles.formContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {authMode === 'register' && (
+            <TextInput
+              style={styles.input}
+              placeholder="Full Name"
+              placeholderTextColor="#666"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+              editable={!loading}
+            />
+          )}
 
-      {authMode === 'login' && (
-        <TouchableOpacity onPress={() => setAuthMode('register')}>
-          <Text style={styles.switchText}>Don't have an account? Sign up</Text>
-        </TouchableOpacity>
-      )}
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#666"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            editable={!loading}
+          />
 
-      {authMode === 'register' && (
-        <TouchableOpacity onPress={() => setAuthMode('login')}>
-          <Text style={styles.switchText}>Already have an account? Sign in</Text>
-        </TouchableOpacity>
-      )}
-    </View>
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#666"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            editable={!loading}
+          />
+
+          <TouchableOpacity 
+            style={[styles.submitButton, { opacity: loading ? 0.7 : 1 }]}
+            onPress={handleEmailAuth}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={COLORS.black} />
+            ) : (
+              <Text style={styles.submitText}>
+                {authMode === 'login' ? 'SIGN IN' : 'CREATE ACCOUNT'}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={resetForm}
+            disabled={loading}
+          >
+            <Text style={styles.backText}>← Back to options</Text>
+          </TouchableOpacity>
+
+          {authMode === 'login' && (
+            <TouchableOpacity onPress={() => setAuthMode('register')} disabled={loading}>
+              <Text style={styles.switchText}>Don't have an account? Sign up</Text>
+            </TouchableOpacity>
+          )}
+
+          {authMode === 'register' && (
+            <TouchableOpacity onPress={() => setAuthMode('login')} disabled={loading}>
+              <Text style={styles.switchText}>Already have an account? Sign in</Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+      </View>
+    </TouchableWithoutFeedback>
   );
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}> 
     <Modal 
-  isVisible={visible} 
-  onBackdropPress={() => {
-   resetForm();
-   onClose();
-  }} 
-  style={styles.modal}
-  avoidKeyboard={true} // <-- Important for react-native-modal
- >
-  <KeyboardAvoidingView
-   behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-   style={{ flex: 1 }}
-  >
-   <ScrollView 
-    contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }} 
-    keyboardShouldPersistTaps="handled"
-   >
-    {authMode === 'select' ? renderAuthSelection() : renderEmailForm()}
-   </ScrollView>
-  </KeyboardAvoidingView>
- </Modal>
-    </TouchableWithoutFeedback>
+      isVisible={visible} 
+      onBackdropPress={() => {
+        if (!loading) {
+          Keyboard.dismiss();
+          resetForm();
+          onClose();
+        }
+      }} 
+      style={styles.modal}
+      avoidKeyboard={false}
+      propagateSwipe={true}
+    >
+      {authMode === 'select' ? renderAuthSelection() : renderEmailForm()}
+    </Modal>
   );
 }
 
@@ -269,14 +307,18 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end', 
     margin: 0 
   },
+  keyboardView: {
+    justifyContent: 'flex-end',
+  },
   sheet: {
     backgroundColor: '#1B1B1D',
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     paddingTop: 10,
-    paddingBottom: 30,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
     paddingHorizontal: 24,
-    alignItems: 'center'
+    alignItems: 'center',
+    maxHeight: '90%',
   },
   grabber: { 
     width: 44, 
@@ -315,6 +357,14 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 16,
     fontFamily: FONTS.body,
+  },
+  formScrollView: {
+    width: '100%',
+    maxHeight: 400,
+    flexShrink: 1,
+  },
+  formContainer: {
+    paddingBottom: 20,
   },
   input: {
     width: '100%',
@@ -355,9 +405,6 @@ const styles = StyleSheet.create({
     color: '#8E8E93', 
     fontSize: SIZES.small, 
     textAlign: 'center',
-    marginTop: 16,
-  },
-  loader: {
     marginTop: 16,
   },
 });

@@ -19,6 +19,7 @@ import { COLORS, FONTS } from '../theme';
 import ApiService from '../services/api';
 import RatingModal from '../components/RatingModal';
 
+
 type RootRouteParamList = {
   Detail: {
     anime: {
@@ -30,7 +31,9 @@ type RootRouteParamList = {
   };
 };
 
+
 type DetailRouteProp = RouteProp<RootRouteParamList, 'Detail'>;
+
 
 interface Episode {
   _id: string;
@@ -46,6 +49,7 @@ interface Episode {
   }>;
 }
 
+
 interface AnimeData {
   _id: string;
   title: string;
@@ -55,6 +59,7 @@ interface AnimeData {
   synopsis?: string;
 }
 
+
 export default function Detail(): React.ReactElement {
   const route = useRoute<DetailRouteProp>();
   const navigation = useNavigation();
@@ -62,11 +67,13 @@ export default function Detail(): React.ReactElement {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
-  const [selectedEpisode, setSelectedEpisode] = useState<string>('');
+  const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
   const [synopsisModalVisible, setSynopsisModalVisible] = useState(false);
   const [selectedSynopsis, setSelectedSynopsis] = useState('');
 
+
   const animeId = route.params?.anime?.id || route.params?.anime?._id;
+
 
   useEffect(() => {
     if (animeId) {
@@ -77,6 +84,7 @@ export default function Detail(): React.ReactElement {
       ]);
     }
   }, [animeId]);
+
 
   const loadAnimeDetails = async () => {
     console.log("Loading anime details for ID:", animeId);
@@ -95,10 +103,12 @@ export default function Detail(): React.ReactElement {
     }
   };
 
+
   const handleEpisodeRating = (episode: Episode) => {
-    setSelectedEpisode(episode._id);
+    setSelectedEpisode(episode);
     setRatingModalVisible(true);
   };
+
 
   const handleCheckSynopsis = (episode: Episode) => {
     if (!episode.synopsis || episode.synopsis.trim() === '') {
@@ -109,12 +119,15 @@ export default function Detail(): React.ReactElement {
     setSynopsisModalVisible(true);
   };
 
+
   const onRatingSubmitted = () => {
     loadAnimeDetails();
     setRatingModalVisible(false);
   };
 
+
   const formatRating = (rating: number) => rating ? `${rating.toFixed(1)}/10` : 'Not rated';
+
 
   const renderEpisode = ({ item }: { item: Episode }) => (
     <View style={styles.episodeCard} key={item._id}>
@@ -158,6 +171,7 @@ export default function Detail(): React.ReactElement {
     </View>
   );
 
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -166,6 +180,7 @@ export default function Detail(): React.ReactElement {
       </View>
     );
   }
+
 
   if (!animeData) {
     return (
@@ -180,6 +195,7 @@ export default function Detail(): React.ReactElement {
       </View>
     );
   }
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -196,6 +212,7 @@ export default function Detail(): React.ReactElement {
         </TouchableOpacity>
       </View>
 
+
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Season Selector */}
         <View style={styles.seasonSelector}>
@@ -205,6 +222,7 @@ export default function Detail(): React.ReactElement {
           </TouchableOpacity>
           <Text style={styles.episodeCount}>{episodes.length} Episodes</Text>
         </View>
+
 
         {/* Episodes List */}
         {episodes.length > 0 ? (
@@ -224,13 +242,22 @@ export default function Detail(): React.ReactElement {
         )}
       </ScrollView>
 
+
       {/* Rating Modal */}
-      <RatingModal
-        visible={ratingModalVisible}
-        onClose={() => setRatingModalVisible(false)}
-        episodeId={selectedEpisode}
-        onRatingSubmitted={onRatingSubmitted}
-      />
+      {selectedEpisode && (
+        <RatingModal
+          visible={ratingModalVisible}
+          onClose={() => {
+            setRatingModalVisible(false);
+            setSelectedEpisode(null);
+          }}
+          episodeId={selectedEpisode._id}
+          currentAverageRating={selectedEpisode.averageRating || 0}
+          totalRatings={selectedEpisode.userRatings?.length || 0}
+          onRatingSubmitted={onRatingSubmitted}
+        />
+      )}
+
 
       {/* Synopsis Modal */}
       <Modal
@@ -257,6 +284,7 @@ export default function Detail(): React.ReactElement {
   );
 }
 
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.black },
   centered: { justifyContent: 'center', alignItems: 'center' },
@@ -269,6 +297,7 @@ const styles = StyleSheet.create({
     borderRadius: 8 
   },
   backButtonText: { color: COLORS.black, fontWeight: 'bold' },
+
 
   header: {
     flexDirection: 'row',
@@ -288,6 +317,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginHorizontal: 16,
   },
+
 
   content: { flex: 1 },
   seasonSelector: {
@@ -315,6 +345,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 16,
   },
+
 
   episodesList: {
     paddingHorizontal: 20,
@@ -398,6 +429,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 16,
   },
+
 
   modalOverlay: {
     flex: 1,

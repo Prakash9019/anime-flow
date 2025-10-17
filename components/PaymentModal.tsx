@@ -491,10 +491,8 @@
 //   },
 // });
 
-
-
 // components/PaymentModal.tsx
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -514,8 +512,9 @@ import {
   PaymentSheetError,
   InitPaymentSheetResult, 
 } from '@stripe/stripe-react-native';
-import { COLORS } from '../theme'; // Assuming COLORS is defined
-import ApiService from '../services/api'; // Assuming ApiService is defined
+import { COLORS } from '../theme';
+import ApiService from '../services/api';
+
 
 interface PaymentModalProps {
   visible: boolean;
@@ -524,35 +523,39 @@ interface PaymentModalProps {
   onSuccess: () => void;
 }
 
-// Define the type for card details using the exported event type structure
+
 type CardDetailsType = {
     complete: boolean;
     brand: string;
     last4: string;
 } | null;
 
-// Define available payment methods
+
 type PaymentMethodType = 'sheet' | 'card';
+
 
 export default function PaymentModal({ visible, onClose, amount, onSuccess }: PaymentModalProps) {
   const { confirmPayment } = useStripe();
   const { initPaymentSheet, presentPaymentSheet, loading: sheetLoading } = usePaymentSheet();
+
 
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('sheet');
   const [cardDetails, setCardDetails] = useState<CardDetailsType>(null); 
   const [loading, setLoading] = useState(false);
   
-  const dollarAmount = amount / 100; // Display amount
+  const dollarAmount = amount / 100;
   const canPayWithCard = paymentMethod === 'card' && cardDetails?.complete && clientSecret;
   const canPayWithSheet = paymentMethod === 'sheet' && clientSecret && !sheetLoading;
 
+
   const resetAndClose = useCallback(() => {
-  setClientSecret(null);
-  setCardDetails(null);
-  setPaymentMethod('sheet');
-  onClose();
-}, [onClose]);
+    setClientSecret(null);
+    setCardDetails(null);
+    setPaymentMethod('sheet');
+    onClose();
+  }, [onClose]);
+
 
   // ---------------------------------------------------------------------
   // 1. PAYMENT INTENT CREATION
@@ -560,6 +563,7 @@ export default function PaymentModal({ visible, onClose, amount, onSuccess }: Pa
 
   const initializePayment = useCallback(async () => {
     if (amount <= 0) return;
+
 
     setLoading(true);
     setClientSecret(null); 
@@ -570,9 +574,10 @@ export default function PaymentModal({ visible, onClose, amount, onSuccess }: Pa
           ...await ApiService.getAuthHeaders(),
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount }), // This 'amount' is in CENTS.
       });
 
+     
       const data = await res.json();
       if (data.clientSecret) {
         setClientSecret(data.clientSecret);
@@ -588,14 +593,16 @@ export default function PaymentModal({ visible, onClose, amount, onSuccess }: Pa
     }
   }, [amount, resetAndClose]);
 
+
   useEffect(() => {
     if (visible) {
       initializePayment();
     }
   }, [visible, initializePayment]);
 
+
   // ---------------------------------------------------------------------
-  // 2. PAYMENT SHEET (Apple Pay/Google Pay) SETUP
+  // 2. PAYMENT SHEET (Apple Pay/Google Pay) SETUP - INCLUDES WALLET INITIALIZATION
   // ---------------------------------------------------------------------
 
   const initializePaymentSheet = useCallback(async (secret: string) => {
@@ -604,26 +611,30 @@ export default function PaymentModal({ visible, onClose, amount, onSuccess }: Pa
       paymentIntentClientSecret: secret,
       allowsDelayedPaymentMethods: true,
       
-      // Use customerId if you want to reuse payment methods
-      // customerId: 'some_user_id', 
-      
+      // Configuration for Google Pay
       googlePay: {
-        merchantCountryCode: 'US',
-        testEnv: process.env.NODE_ENV !== 'production',
+        merchantCountryCode: 'US', // Change to your merchant country
+        testEnv: process.env.NODE_ENV !== 'production', // Automatically uses test mode in development
         currencyCode: 'USD',
       },
+      // Configuration for Apple Pay
       applePay: {
-        merchantCountryCode: 'US',
+        merchantCountryCode: 'US', // Change to your merchant country
       },
+      
+      // Optional customer and billing details
+      // customerId: 'some_user_id', 
       defaultBillingDetails: {
-          email: 'user@example.com' 
+        email: 'user@example.com' 
       }
     });
+
 
     if (error) {
       console.log('Payment Sheet setup failed:', error.message);
     }
   }, [initPaymentSheet]);
+
 
   useEffect(() => {
     if (clientSecret && paymentMethod === 'sheet') {
@@ -638,22 +649,22 @@ export default function PaymentModal({ visible, onClose, amount, onSuccess }: Pa
 
   const confirmBackendDonation = async (paymentIntentId: string) => {
     try {
-        // Send the PaymentIntent ID to the server for final confirmation and user upgrade
-        await fetch(`${ApiService.baseURL}/payment/confirm-donation`, {
-            method: 'POST',
-            headers: {
-                ...await ApiService.getAuthHeaders(),
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ paymentIntentId, amount: dollarAmount }),
-        });
-        onSuccess();
-        resetAndClose();
+      await fetch(`${ApiService.baseURL}/payment/confirm-donation`, {
+        method: 'POST',
+        headers: {
+          ...await ApiService.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ paymentIntentId, amount: dollarAmount }),
+      });
+      onSuccess();
+      resetAndClose();
     } catch (e) {
-        Alert.alert('Error', 'Payment succeeded but failed to confirm donation on server.');
-        resetAndClose();
+      Alert.alert('Error', 'Payment succeeded but failed to confirm donation on server.');
+      resetAndClose();
     }
   }
+
 
   const handlePayPress = async () => {
     if (!clientSecret) {
@@ -661,36 +672,38 @@ export default function PaymentModal({ visible, onClose, amount, onSuccess }: Pa
       return;
     }
     
-    // --- Sheet Payment (Apple Pay/Google Pay/Saved Cards) ---
+    // Sheet Payment
     if (paymentMethod === 'sheet') {
-      // FIX: presentPaymentSheet only returns an error or nothing (success)
       const { error } = await presentPaymentSheet(); 
+
 
       if (error) {
         if (error.code !== PaymentSheetError.Canceled) {
           Alert.alert('Payment Failed', error.message);
         }
       } else {
-        // Assume success for simple PaymentIntent flow
+        // Success for PaymentSheet means payment succeeded
         Alert.alert('Success', 'Payment is processing!', [
-            // Use clientSecret as the ID since the sheet completed the payment for us
-            { text: 'OK', onPress: () => confirmBackendDonation(clientSecret!) } 
+          { text: 'OK', onPress: () => confirmBackendDonation(clientSecret!) } 
         ]);
       }
       return;
     }
 
-    // --- CardField Payment ---
+
+    // CardField Payment
     if (paymentMethod === 'card') {
       if (!cardDetails || !cardDetails.complete) {
         Alert.alert('Error', 'Please enter complete and valid card details.');
         return;
       }
 
+
       setLoading(true);
       const { paymentIntent, error } = await confirmPayment(clientSecret, {
         paymentMethodType: 'Card',
       });
+
 
       if (error) {
         Alert.alert('Payment Failed', error.message || 'Payment processing failed.');
@@ -706,8 +719,6 @@ export default function PaymentModal({ visible, onClose, amount, onSuccess }: Pa
   };
 
 
-  // --- JSX & Styles (Minimal for brevity) ---
-
   return (
     <Modal isVisible={visible} onBackdropPress={resetAndClose} style={styles.modal}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
@@ -715,41 +726,42 @@ export default function PaymentModal({ visible, onClose, amount, onSuccess }: Pa
           <View style={styles.header}>
             <Text style={styles.title}>Complete Donation</Text>
             <TouchableOpacity onPress={resetAndClose} disabled={loading || sheetLoading}>
-              <Ionicons name="close" color={COLORS.text || '#FFF'} size={24} />
+              <Ionicons name="close" color={COLORS.text || '#FFFFFF'} size={24} />
             </TouchableOpacity>
           </View>
+
 
           <View style={styles.amountContainer}>
             <Text style={styles.amountLabel}>Donation Amount</Text>
             <Text style={styles.amountText}>${dollarAmount.toFixed(2)}</Text>
           </View>
           
-          {/* Payment Method Selection */}
           <View style={styles.methodContainer}>
             <TouchableOpacity
               style={[styles.methodButton, paymentMethod === 'sheet' && styles.selectedMethod]}
               onPress={() => setPaymentMethod('sheet')}
               disabled={loading || sheetLoading || !clientSecret}
             >
-              <Ionicons name="wallet-outline" color={paymentMethod === 'sheet' ? (COLORS.black || '#000') : (COLORS.text || '#FFF')} size={20} />
+              <Ionicons name="wallet-outline" color={paymentMethod === 'sheet' ? '#000000' : '#FFFFFF'} size={20} />
               <Text style={[styles.methodText, paymentMethod === 'sheet' && styles.selectedMethodText]}>
                 Wallet / Quick Pay
               </Text>
             </TouchableOpacity>
+
 
             <TouchableOpacity
               style={[styles.methodButton, paymentMethod === 'card' && styles.selectedMethod]}
               onPress={() => setPaymentMethod('card')}
               disabled={loading || sheetLoading || !clientSecret}
             >
-              <Ionicons name="card-outline" color={paymentMethod === 'card' ? (COLORS.black || '#000') : (COLORS.text || '#FFF')} size={20} />
+              <Ionicons name="card-outline" color={paymentMethod === 'card' ? '#000000' : '#FFFFFF'} size={20} />
               <Text style={[styles.methodText, paymentMethod === 'card' && styles.selectedMethodText]}>
                 New Card
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Card Field Form (Only visible when 'card' is selected) */}
+
           {paymentMethod === 'card' && (
             <View style={styles.formContainer}>
               <Text style={styles.sectionTitle}>Secure Card Details</Text>
@@ -763,45 +775,47 @@ export default function PaymentModal({ visible, onClose, amount, onSuccess }: Pa
                 <CardField
                   postalCodeEnabled={false}
                   placeholders={{ 
-                    number: 'Card Number',
+                    number: '4242 4242 4242 4242',
                     expiration: 'MM/YY',
                     cvc: 'CVC',
                   }}
                   cardStyle={{
                     backgroundColor: '#2C2C2E',
-                    textColor: COLORS.text || '#FFF',
-                    placeholderColor: '#666',
+                    textColor: '#FFFFFF',
+                    placeholderColor: '#666666',
                     fontSize: 16,
                     borderRadius: 12,
                   }}
                   style={styles.cardField}
-                  onCardChange={(event: any) => setCardDetails(event.details)} 
+                  // FIX: Use event.details to set the state type correctly
+                  onCardChange={(event: any) => setCardDetails(event.complete ? event.details : null)} 
                   disabled={loading || sheetLoading}
                 />
               )}
             </View>
           )}
 
-          {/* Payment Button */}
+
           <TouchableOpacity
             style={[
               styles.payButton, 
-              { opacity: (loading || sheetLoading || (!canPayWithSheet && !canPayWithCard)) ? 0.7 : 1 }
+              { opacity: (loading || sheetLoading || (!canPayWithSheet && !canPayWithCard)) ? 0.5 : 1 }
             ]}
-            onPress={() => {handlePayPress()}}
+            onPress={handlePayPress}
             disabled={loading || sheetLoading || (!canPayWithSheet && !canPayWithCard)}
           >
             {(loading || sheetLoading) ? (
-              <ActivityIndicator color={COLORS.black || '#000'} />
+              <ActivityIndicator color="#000000" />
             ) : (
               <Text style={styles.payButtonText}>
-                {paymentMethod === 'sheet' ? 'Pay with Sheet (Google/Apple Pay)' : `Pay $${dollarAmount.toFixed(2)}`}
+                {paymentMethod === 'sheet' ? 'Pay with Wallet' : `Pay $${dollarAmount.toFixed(2)}`}
               </Text>
             )}
           </TouchableOpacity>
 
+
           <Text style={styles.secureText}>
-            🔒 Powered by Stripe (Apple Pay/Google Pay enabled)
+            🔒 Powered by Stripe • Secure & Encrypted
           </Text>
         </View>
       </KeyboardAvoidingView>
@@ -809,26 +823,121 @@ export default function PaymentModal({ visible, onClose, amount, onSuccess }: Pa
   );
 }
 
+
 const styles = StyleSheet.create({
-    modal: { justifyContent: 'flex-end', margin: 0 },
-    container: { flex: 1, justifyContent: 'flex-end' },
-    sheet: { backgroundColor: '#1B1B1D', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40, maxHeight: '90%' },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    title: { color: COLORS.text || '#FFF', fontSize: 20, fontWeight: 'bold' },
-    amountContainer: { backgroundColor: '#2C2C2E', padding: 20, borderRadius: 12, alignItems: 'center', marginBottom: 24 },
-    amountLabel: { color: '#999', fontSize: 14, marginBottom: 8 },
-    amountText: { color: COLORS.cyan || '#00FFFF', fontSize: 32, fontWeight: 'bold' },
-    sectionTitle: { color: COLORS.text || '#FFF', fontSize: 16, fontWeight: 'bold', marginBottom: 12 },
-    formContainer: { marginBottom: 24 },
-    cardField: { width: '100%', height: 50, marginVertical: 10 },
-    loadingCard: { height: 50, justifyContent: 'center', alignItems: 'center', backgroundColor: '#2C2C2E', borderRadius: 12, flexDirection: 'row', gap: 10, paddingHorizontal: 15 },
-    loadingText: { color: COLORS.text || '#FFF', fontSize: 16 },
-    payButton: { backgroundColor: COLORS.cyan || '#00FFFF', borderRadius: 12, padding: 18, alignItems: 'center', marginBottom: 16 },
-    payButtonText: { color: COLORS.black || '#000', fontSize: 18, fontWeight: 'bold' },
-    secureText: { color: '#666', fontSize: 12, textAlign: 'center' },
-    methodButton: { padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#333', marginHorizontal: 5, flexDirection: 'row', alignItems: 'center' },
-    selectedMethod: { backgroundColor: COLORS.cyan || '#00FFFF', borderColor: COLORS.cyan || '#00FFFF' },
-    methodText: { color: COLORS.text || '#FFF', marginLeft: 5, fontWeight: 'bold' },
-    selectedMethodText: { color: COLORS.black || '#000' },
-    methodContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 20 },
-  });
+  // ... (Your provided styles)
+  modal: { justifyContent: 'flex-end', margin: 0 },
+  container: { flex: 1, justifyContent: 'flex-end' },
+  sheet: { 
+    backgroundColor: '#1B1B1D', 
+    borderTopLeftRadius: 20, 
+    borderTopRightRadius: 20, 
+    paddingHorizontal: 20, 
+    paddingTop: 20, 
+    paddingBottom: 40, 
+    maxHeight: '90%' 
+  },
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: 20 
+  },
+  title: { 
+    color: '#FFFFFF', 
+    fontSize: 20, 
+    fontWeight: 'bold' 
+  },
+  amountContainer: { 
+    backgroundColor: '#2C2C2E', 
+    padding: 20, 
+    borderRadius: 12, 
+    alignItems: 'center', 
+    marginBottom: 24 
+  },
+  amountLabel: { 
+    color: '#999999', 
+    fontSize: 14, 
+    marginBottom: 8 
+  },
+  amountText: { 
+    color: COLORS.cyan || '#00FFFF', 
+    fontSize: 32, 
+    fontWeight: 'bold' 
+  },
+  sectionTitle: { 
+    color: '#FFFFFF', 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    marginBottom: 12 
+  },
+  formContainer: { 
+    marginBottom: 24 
+  },
+  cardField: { 
+    width: '100%', 
+    height: 50, 
+    marginVertical: 10 
+  },
+  loadingCard: { 
+    height: 50, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: '#2C2C2E', 
+    borderRadius: 12, 
+    flexDirection: 'row', 
+    gap: 10, 
+    paddingHorizontal: 15 
+  },
+  loadingText: { 
+    color: '#FFFFFF', 
+    fontSize: 16 
+  },
+  payButton: { 
+    backgroundColor: COLORS.cyan || '#00FFFF', 
+    borderRadius: 12, 
+    padding: 18, 
+    alignItems: 'center', 
+    marginBottom: 16 
+  },
+  payButtonText: { 
+    color: '#000000', 
+    fontSize: 18, 
+    fontWeight: 'bold' 
+  },
+  secureText: { 
+    color: '#666666', 
+    fontSize: 12, 
+    textAlign: 'center' 
+  },
+  methodButton: { 
+    flex: 1,
+    padding: 12, 
+    borderRadius: 8, 
+    borderWidth: 1, 
+    borderColor: '#333333', 
+    marginHorizontal: 5, 
+    flexDirection: 'row', 
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedMethod: { 
+    backgroundColor: COLORS.cyan || '#00FFFF', 
+    borderColor: COLORS.cyan || '#00FFFF' 
+  },
+  methodText: { 
+    color: '#FFFFFF', 
+    marginLeft: 8, 
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  selectedMethodText: { 
+    color: '#000000' 
+  },
+  methodContainer: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginBottom: 20,
+    gap: 10,
+  },
+});

@@ -22,7 +22,7 @@ export default function Splash(): React.ReactElement {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Image
-          source={require('../assets/images/logo.png')}
+          source={require('../assets/images/logo.jpg')}
           style={styles.logo}
         />
         <Text style={styles.title}>ANIME FLOW</Text>
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.cyan,
-    fontSize: SIZES.h1,
+    fontSize: SIZES.h2,
     fontFamily: FONTS.title,
     marginBottom: 8,
   },

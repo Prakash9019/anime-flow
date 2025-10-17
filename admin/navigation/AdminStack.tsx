@@ -12,8 +12,9 @@ import AdminMain from '../screens/AdminMain';
 import AdminLogin from '../screens/AdminLogin';
 import ManageAds from '../screens/ManageAds';
 import CreateAds from '../screens/CreateAds';
-
+import Splash from '../../screens/Splash';
 export type AdminParamList = {
+ Splash: undefined;
     AdminMain: undefined;
   AdminPanel: undefined;
   CreateAds: undefined;
@@ -32,6 +33,7 @@ const Stack = createNativeStackNavigator<AdminParamList>();
 export default function AdminStack(): React.ReactElement {
   return (
     <Stack.Navigator initialRouteName="AdminMain" screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Splash" component={Splash} />
       <Stack.Screen name="AdminMain" component={AdminMain} />
       <Stack.Screen name="AdminLogin" component={AdminLogin} />
       <Stack.Screen name="AdminPanel" component={AdminPanel} />
