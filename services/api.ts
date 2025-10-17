@@ -193,7 +193,7 @@ async googleAuth(googleData: { googleId: string; name: string; email: string; av
     const data = await response.json();
     
     if (response.ok && data.token) {
-      await AsyncStorage.setItem('userToken', data.token);
+      await AsyncStorage.setItem('token', data.token);
       await AsyncStorage.setItem('user', JSON.stringify(data.user));
       return { success: true, user: data.user, token: data.token };
     }

@@ -1,4 +1,7 @@
 // theme.ts
+// theme.ts
+import { Platform } from 'react-native';
+
 export const COLORS = {
   black: '#000000',
   cyan: '#00FCEB',
@@ -17,6 +20,10 @@ export const SIZES = {
 } as const;
 
 export const FONTS = {
-  title: 'JapanRamen',
+  title: Platform.select({
+    ios: 'JapanRamen',
+    android: 'JapanRamen',
+    default: 'System', // Fallback
+  }),
   body: 'System'
 } as const;

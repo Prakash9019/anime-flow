@@ -4,11 +4,11 @@
     "slug": "anime-flow2",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/logo.jpg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/images/logo.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -21,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/logo.jpg",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -29,7 +29,7 @@
       "package": "com.surya.animeflow2"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/images/logo.jpg"
     },
     "plugins": [
       [
@@ -38,6 +38,14 @@
           "iosClientId": "113504609626-gjjfcr46vmtgrmq621ifemb8c6a1ck06.apps.googleusercontent.com",
           "webClientId": "113504609626-na30qijm5tne0sen5bq49d0lku1hlecq.apps.googleusercontent.com",
           "iosUrlScheme": "com.googleusercontent.apps.113504609626-gjjfcr46vmtgrmq621ifemb8c6a1ck06"
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/JapanRamen.otf"
+          ]
         }
       ]
     ],

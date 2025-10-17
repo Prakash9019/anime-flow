@@ -32,6 +32,7 @@ import { RootStackParamList } from '../types';
 interface AuthOptionsProps {
   visible: boolean;
   onClose: () => void;
+  onSuccess: () => void; 
 }
 
 type AuthNavProp = NativeStackNavigationProp<RootStackParamList>;
@@ -104,6 +105,7 @@ export default function AuthOptions({ visible, onClose }: AuthOptionsProps) {
       console.log('Login success:', res);      // await saveToken(res.data.token);
 
       Alert.alert('Success', 'Google login successful!');
+        navigation.replace('UserMain');
     } else {
       Alert.alert('Cancelled', 'User cancelled sign-in flow');
     }

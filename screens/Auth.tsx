@@ -28,10 +28,12 @@ export default function Auth(): React.ReactElement {
   const openAuthOptions = () => setShowSheet(true);
   const closeAuthOptions = () => {
     setShowSheet(false);
-    navigation.replace('UserMain'); // Updated to match RootStackParamList
   };
   const goAdmin = () => navigation.replace('AdminLogin');
-
+     const handleAuthSuccess = () => {
+    setShowSheet(false);
+    navigation.replace('UserMain');
+  };
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <ImageBackground
@@ -66,7 +68,7 @@ export default function Auth(): React.ReactElement {
           </KeyboardAvoidingView>
         </SafeAreaView>
 
-        <AuthOptions visible={showSheet} onClose={closeAuthOptions} />
+        <AuthOptions visible={showSheet} onClose={closeAuthOptions} onSuccess={handleAuthSuccess} />
       </ImageBackground>
     </TouchableWithoutFeedback>
   );

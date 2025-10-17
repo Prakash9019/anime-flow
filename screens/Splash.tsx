@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, FONTS, SIZES } from '../theme';
 import { RootStackParamList } from '../types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type SplashNavProp = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 
@@ -12,12 +13,35 @@ export default function Splash(): React.ReactElement {
   const navigation = useNavigation<SplashNavProp>();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      navigation.replace('Auth'); // Now works: replace exists!
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [navigation]);
+    checkAuthStatus();
+  }, []);
 
+  const checkAuthStatus = async () => {
+    try {
+      // Wait for minimum splash duration
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Check for user token
+      const userToken = await AsyncStorage.getItem('userToken');
+      const adminToken = await AsyncStorage.getItem('adminToken');
+
+      if (adminToken) {
+        // Admin is logged in
+        navigation.replace('AdminMain');
+      } else if (userToken) {
+        // User is logged in
+        navigation.replace('UserMain');
+      } else {
+        // Not logged in
+        navigation.replace('UserAuth');
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+      // On error, go to auth screen
+      navigation.replace('UserAuth');
+    }
+  };
+  
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>

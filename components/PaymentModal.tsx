@@ -733,7 +733,7 @@ export default function PaymentModal({ visible, onClose, amount, onSuccess }: Pa
 
           <View style={styles.amountContainer}>
             <Text style={styles.amountLabel}>Donation Amount</Text>
-            <Text style={styles.amountText}>${dollarAmount.toFixed(2)}</Text>
+            <Text style={styles.amountText}>${(dollarAmount*100).toFixed(2)}</Text>
           </View>
           
           <View style={styles.methodContainer}>
