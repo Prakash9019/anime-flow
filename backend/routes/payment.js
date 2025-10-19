@@ -29,6 +29,7 @@ router.post('/create-donation-intent', auth, async (req, res) => {
         enabled: true,
       },
     });
+       console.log("heeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
 
     res.json({
       clientSecret: paymentIntent.client_secret,
@@ -43,10 +44,14 @@ router.post('/create-donation-intent', auth, async (req, res) => {
 // 2. Confirm donation and grant ad-free access (Called by PaymentModal.tsx after successful client confirmation)
 router.post('/confirm-donation', auth, async (req, res) => {
   try {
+       console.log("heeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
     const { paymentIntentId, amount } = req.body; // amount here is the dollar amount for logging/display
-
+       console.log("heeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+      console.log("Confirm Donation Request:", { paymentIntentId, amount, userId: req.user._id });
+       console.log("heeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
     // 1. Verify payment with Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+       console.log("heeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
     
     // Check if the status is 'succeeded' and the amount matches (optional but recommended)
     if (paymentIntent.status === 'succeeded' && paymentIntent.amount === Math.round(amount * 100)) { 
@@ -59,13 +64,14 @@ router.post('/confirm-donation', auth, async (req, res) => {
         status: 'completed'
       });
       await donation.save();
-
+      console.log(`Donation recorded for user ${req.user._id}: $${amount}`);
       // 3. Grant ad-free access
+       console.log("heeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
       await User.findByIdAndUpdate(req.user._id, {
         isAdFree: true,
         adFreeGrantedAt: new Date()
       });
-
+       console.log("heeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
       res.json({ message: 'Donation confirmed and ad-free access granted' });
     } else {
       // Log the unexpected status or mismatch

@@ -4,17 +4,11 @@ const User = require('../models/User');
 
 module.exports = async (req, res, next) => {
   try {
-    console.log("Auth middleware called");
    const token = req.header('X-User-Auth')?.replace('Bearer ', ''); 
-    console.log("Token from header:", token);
     if (!token) {
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
-    console.log("hellooooooohiiiiiii")
-    console.log(token);
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log(decoded);
-    console.log(process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId || decoded._id).select('-password');
       console.log(user);
     if (!user) {
