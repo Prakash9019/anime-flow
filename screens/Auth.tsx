@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   },
   primaryText: {
     color: COLORS.black,
-    fontFamily: FONTS.title,
+    // fontFamily: FONTS.title,
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: 0.5,

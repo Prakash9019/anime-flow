@@ -22,13 +22,13 @@ export default function Splash(): React.ReactElement {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Check for user token
-      const userToken = await AsyncStorage.getItem('userToken');
+      const token = await AsyncStorage.getItem('token');
       const adminToken = await AsyncStorage.getItem('adminToken');
 
       if (adminToken) {
         // Admin is logged in
         navigation.replace('AdminMain');
-      } else if (userToken) {
+      } else if (token) {
         // User is logged in
         navigation.replace('UserMain');
       } else {

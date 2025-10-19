@@ -19,6 +19,30 @@ import { COLORS, FONTS } from '../theme';
 import ApiService from '../services/api';
 import AdBanner from '../components/AdBanner';
 import { useAuth } from '../hooks/useAuth';
+import RatingBanner from '../components/RatingBanner';
+import Svg, { Polygon, Text as SvgText } from 'react-native-svg';
+
+// Add this component above your Home component
+const TrapezoidBadge = ({ rank }: { rank: number }) => (
+  <View style={{ position: 'absolute', top: 20, alignSelf: 'center', zIndex: 3 }}>
+    <Svg height="35" width="140">
+      <Polygon
+        points="15,0 125,0 140,35 0,35"
+        fill="#00FFFF"
+      />
+      <SvgText
+        fill="#000"
+        fontSize="16"
+        fontWeight="900"
+        x="70"
+        y="23"
+        textAnchor="middle"
+      >
+        #{rank} RATED
+      </SvgText>
+    </Svg>
+  </View>
+);
 
 // Define types locally if not exported from types file
 interface AnimeItem {
@@ -369,59 +393,106 @@ export default function Home(): React.ReactElement {
   //   );
   // };
 
-  const renderAnimeCard = ({ item, index }: { item: AnimeItem; index: number }) => {
+// const renderAnimeCard = ({ item, index }: { item: AnimeItem; index: number }) => {
+//   const displayRating = item.averageRating || 0;
+//   const displayRank = item.rank || index + 1;
+
+//   return (
+//     <> 
+//     <View style={styles.topRatedBadge}>
+//           <Text style={styles.topRatedText}>#{displayRank} Rated</Text>
+//         </View>
+//       <TouchableOpacity
+//         style={styles.animeCard}
+//         onPress={() => navigation.navigate('Detail', { anime: item })}
+//         activeOpacity={0.8}
+//       >
+//         {/* "#1 Rated" Badge (Top Left) */}
+       
+
+//         {/* Poster Image Container */}
+//         <View style={styles.posterContainer}>
+//           {/* Rating Overlay (Top of poster) */}
+//           <View style={styles.ratingOverlay}>
+//             <Ionicons name="star" color="#00FFFF" size={20} />
+//             <Text style={styles.ratingText}>
+//               {displayRating.toFixed(1)}/10
+//             </Text>
+//           </View>
+
+//           {/* Release Day Banner (Middle of poster) */}
+//           <View style={styles.releaseDayBanner}>
+            
+//             <Text style={styles.releaseDayText}>WEEKLY RELEASE DAY</Text>
+//           </View>
+
+//           <Image
+//             source={{ uri: item.poster }}
+//             style={styles.animePoster}
+//             resizeMode="cover"
+//           />
+
+//           {/* Platform Icons (Bottom Right of poster) */}
+
+//         </View>
+
+//         {/* Title Button */}
+//         <TouchableOpacity style={styles.titleButton}>
+//           <Text style={styles.titleButtonText}>{item.title.toUpperCase()}</Text>
+//         </TouchableOpacity>
+//       </TouchableOpacity>
+
+//       {/* Show ad after every 4 anime cards for non-donors */}
+//       {!isAdFree && user && (index) % 4 === 0 && (
+//         <View style={styles.adContainer}>
+//           <AdBanner />
+//         </View>
+//       )}
+//     </>
+//   );
+// };
+
+const renderAnimeCard = ({ item, index }: { item: AnimeItem; index: number }) => {
   const displayRating = item.averageRating || 0;
   const displayRank = item.rank || index + 1;
 
   return (
     <>
+      <RatingBanner
+    rating={displayRank}
+    label="WEEKLY RELEASE DAY"
+  />
       <TouchableOpacity
         style={styles.animeCard}
         onPress={() => navigation.navigate('Detail', { anime: item })}
         activeOpacity={0.8}
       >
-        {/* Rank Badge (Top Left) */}
-        <View style={styles.rankBadge}>
-          <Text style={styles.rankBadgeText}>#{displayRank}</Text>
-        </View>
+         <View style={styles.ratingOverlay}>
+            <Ionicons name="star" color={COLORS.black} size={20} />
+            <Text style={styles.ratingOverlayText}>
+              {displayRating.toFixed(1)}/10
+            </Text>
+          </View>
 
-        {/* Rating Badge (Top Right) */}
-        <View style={styles.ratingBadge}>
-          <Ionicons name="star" color="#FFD700" size={14} />
-          <Text style={styles.ratingBadgeText}>
-            {displayRating.toFixed(1)}
-          </Text>
-        </View>
+          {/* Weekly Release Banner */}
+          <View style={styles.releaseBanner}>
+            <Text style={styles.releaseBannerText}>WEEKLY RELEASE DAY</Text>
+          </View>
 
-        {/* Poster Image */}
-        <Image
-          source={{ uri: item.poster }}
-          style={styles.animePoster}
-          resizeMode="contain"
-        />
-
-        {/* Title and Info */}
-        <View style={styles.animeInfo}>
-          <Text style={styles.animeTitle} numberOfLines={2}>
-            {item.title}
-          </Text>
+        {/* Poster + Overlays */}
+        <View style={styles.posterContainer}>
+          <Image source={{ uri: item.poster }} style={styles.animePoster} />
           
-          {item.genres && item.genres.length > 0 && (
-            <Text style={styles.animeGenres} numberOfLines={1}>
-              {item.genres.slice(0, 2).join(' • ')}
-            </Text>
-          )}
+        </View>
 
-          {/* {item.ratedEpisodesCount && (
-            <Text style={styles.ratedEpisodesText}>
-              Based on {item.ratedEpisodesCount} episode{item.ratedEpisodesCount > 1 ? 's' : ''}
-            </Text>
-          )} */}
+        {/* Title Button */}
+        <View style={styles.titleButton}>
+          <Text style={styles.titleButtonText}>{item.title.toUpperCase()}</Text>
         </View>
       </TouchableOpacity>
 
-      {/* Show ad after every 4 anime cards for non-donors */}
-      {!isAdFree && user && (index ) % 4 === 0 && (
+      {/* Ads after every 4 cards */}
+      {!isAdFree && user && index % 4 === 0 && (
         <View style={styles.adContainer}>
           <AdBanner />
         </View>
@@ -429,7 +500,6 @@ export default function Home(): React.ReactElement {
     </>
   );
 };
-
   const renderPaginationControls = () => {
     // console.log('Pagination Info:', pagination);
     if (pagination.totalPages <= 1) return null;
@@ -736,15 +806,187 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
 
-  // Anime Cards
-  animeCard: {
-    width: '100%',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    marginBottom: 16,
+   animeCard: {
+    backgroundColor: '#000',
+    borderRadius: 16,
     overflow: 'hidden',
-    position: 'relative',
+    marginTop: 30,
+    marginBottom: 24,
   },
+  // Top badge container centers the trapezoid
+  topBadgeContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 52,
+    alignItems: 'center',
+    zIndex: 3,
+  },
+  // Cyan trapezoid shape
+  topBadge: {
+    width: 200,
+    height: 52,
+    backgroundColor: COLORS.cyan,
+    transform: [{ skewX: '-20deg' }],
+    justifyContent: 'center',
+  },
+  topBadgeText: {
+    transform: [{ skewX: '20deg' }],
+    color: '#000',
+    fontSize: 18,
+    fontFamily: FONTS.title,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+ posterContainer: {
+  width: '100%',
+  height: 360,
+  position: 'relative',
+  alignItems: 'center',      // ← centers horizontally
+  justifyContent: 'center',  // ← centers vertically
+  backgroundColor: '#1A1A1A', // optional background
+},
+animePoster: {
+  width: '90%',
+  height: '90%',
+  resizeMode: 'cover',
+},
+
+
+ratingOverlay: {
+  position: 'absolute',
+  top: 20,
+  alignSelf: 'center',
+  backgroundColor: COLORS.cyan,
+  paddingHorizontal: 16,
+  paddingVertical: 8,
+  borderRadius: 8,
+  flexDirection: 'row',
+  alignItems: 'center',
+  zIndex: 2,
+},
+ratingOverlayText: {
+  color: '#000',
+  marginLeft: 8,
+  fontSize: 20,
+  fontFamily: FONTS.title,
+  fontWeight: '900',
+},
+releaseBanner: {
+  position: 'absolute',
+  top: 70,
+  alignSelf: 'center',
+  backgroundColor: 'rgba(0,0,0,0.85)',
+  paddingVertical: 6,
+  paddingHorizontal: 12,
+  borderRadius: 4,
+  alignItems: 'center',
+  zIndex: 2,
+},
+releaseBannerText: {
+  color: '#FFF',
+  fontSize: 12,
+  fontFamily: FONTS.title,
+  fontWeight: 'bold',
+  letterSpacing: 1,
+},
+
+
+
+
+  platformIcons: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    flexDirection: 'row',
+    zIndex: 2,
+  },
+  platformIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  platformIconText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontFamily: FONTS.body,
+    fontWeight: 'bold',
+  },
+  titleButton: {
+    backgroundColor: COLORS.cyan,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  titleButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontFamily: FONTS.title,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  adContainer: {
+    marginBottom: 24,
+  },
+
+  // "#1 Rated" Badge
+  topRatedBadge: {
+  position: 'absolute',
+  top: 20,
+  alignSelf: 'center',
+  backgroundColor: '#00FFFF',
+  width:"100%",
+  paddingHorizontal: 12,
+  paddingVertical: 8,
+  zIndex: 3,
+  transform: [{ skewX: '-10deg' }], // Creates angled effect
+},
+topRatedText: {
+  color: '#000000',
+  fontSize: 18,
+  fontFamily: FONTS.title,
+  fontWeight: '900',
+  letterSpacing: 1,
+  transform: [{ skewX: '10deg' }], // Counter-skew the text
+},
+
+  ratingText: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontFamily: FONTS.title,
+    fontWeight: '900',
+  },
+
+  // Release Day Banner
+  releaseDayBanner: {
+    position: 'absolute',
+    // width: '70%',
+    top: 120,
+    left: 0,
+    right: 0,
+    // backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    paddingVertical: 8,
+    zIndex: 2,
+    alignItems: 'center',
+    justifyContent:"center",
+  },
+  releaseDayText: {
+    padding:8,
+     backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: FONTS.title,
+    fontWeight: 'bold',
+    letterSpacing: 2,
+  },
+  platformIconOrange: {
+    backgroundColor: '#FF6B00', // Crunchyroll orange
+  },
+
+
   topRatedCard: {
     borderWidth: 2,
     borderColor: COLORS.cyan,
@@ -780,39 +1022,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  // Poster
-animePoster: {
-  width: '100%',
-  height: 200,
-  resizeMode: 'contain', // Fit image inside without cropping or distortion
-  borderRadius: 12,
-  backgroundColor: '#000' // Optional: prevents blank spaces from white background
-},
 
 
   topRatedPoster: {
     height: 220,
-  },
-
-  // Rating Overlay
-  ratingOverlay: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    borderRadius: 12,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    zIndex: 1,
-  },
-  ratingText: {
-    color: COLORS.text,
-    fontSize: 12,
-    marginLeft: 4,
-    fontFamily: FONTS.body,
-    fontWeight: 'bold',
   },
 
   // Anime Info
@@ -851,12 +1064,6 @@ animePoster: {
     color: '#666',
     fontSize: 10,
     fontFamily: FONTS.body,
-  },
-
-  // Ad Container
-  adContainer: {
-    width: '100%',
-    marginBottom: 16,
   },
 
   // Pagination

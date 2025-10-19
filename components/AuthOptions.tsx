@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     color: COLORS.text, 
     fontSize: SIZES.h3, 
     marginBottom: 20, 
-    fontFamily: FONTS.title 
+    // fontFamily: FONTS.title 
   },
   row: { 
     flexDirection: 'row', 
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   submitText: {
     color: COLORS.black,
     fontSize: 16,
-    fontFamily: FONTS.title,
+    // fontFamily: FONTS.title,
     fontWeight: 'bold',
   },
   backButton: {
