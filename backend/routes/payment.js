@@ -83,4 +83,60 @@ router.post('/confirm-donation', auth, async (req, res) => {
   }
 });
 
+// routes/payment.js
+router.post('/create-subscription', auth, async (req, res) => {
+  try {
+    const { priceId } = req.body; // Stripe Price ID (recurring plan)
+
+    // 1. Fetch or create Stripe Customer for this user
+    const user = await User.findById(req.user._id);
+    if (!user.stripeCustomerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: { userId: user._id.toString() },
+      });
+      user.stripeCustomerId = customer.id;
+      await user.save();
+    }
+
+    // 2. Create Subscription
+    const subscription = await stripe.subscriptions.create({
+      customer: user.stripeCustomerId,
+      items: [{ price: priceId }],
+      payment_behavior: 'default_incomplete',
+      expand: ['latest_invoice.payment_intent'],
+    });
+
+    res.json({
+      clientSecret: subscription.latest_invoice.payment_intent.client_secret,
+      subscriptionId: subscription.id,
+    });
+  } catch (error) {
+    console.error("Subscription Error:", error);
+    res.status(500).json({ message: 'Subscription creation failed', error: error.message });
+  }
+});
+
+
+router.post('/confirm-subscription', auth, async (req, res) => {
+  try {
+    const { subscriptionId } = req.body;
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+    if (subscription.status === 'active' || subscription.status === 'trialing') {
+      await User.findByIdAndUpdate(req.user._id, {
+        isSubscribed: true,
+        subscriptionId,
+      });
+      return res.json({ message: 'Subscription activated!' });
+    }
+
+    res.status(400).json({ message: `Subscription not active. Status: ${subscription.status}` });
+  } catch (error) {
+    console.error("Subscription Confirmation Error:", error);
+    res.status(500).json({ message: 'Failed to confirm subscription', error: error.message });
+  }
+});
+
+
 module.exports = router;
