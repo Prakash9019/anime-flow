@@ -467,10 +467,11 @@ const renderAnimeCard = ({ item, index }: { item: AnimeItem; index: number }) =>
         onPress={() => navigation.navigate('Detail', { anime: item })}
         activeOpacity={0.8}
       >
+        <View style={styles.combinedOverlayContainer}> 
          <View style={styles.ratingOverlay}>
-            <Ionicons name="star" color={COLORS.black} size={20} />
+            <Ionicons name="star" color={COLORS.cyan} size={20} />
             <Text style={styles.ratingOverlayText}>
-              {displayRating.toFixed(1)}/10
+              {displayRating.toFixed(1)}<Text style={{ color: COLORS.cyan }}>{"/"}</Text>10
             </Text>
           </View>
 
@@ -478,7 +479,7 @@ const renderAnimeCard = ({ item, index }: { item: AnimeItem; index: number }) =>
           <View style={styles.releaseBanner}>
             <Text style={styles.releaseBannerText}>WEEKLY RELEASE DAY</Text>
           </View>
-
+         </View>
         {/* Poster + Overlays */}
         <View style={styles.posterContainer}>
           <Image source={{ uri: item.poster }} style={styles.animePoster} />
@@ -491,12 +492,12 @@ const renderAnimeCard = ({ item, index }: { item: AnimeItem; index: number }) =>
         </View>
       </TouchableOpacity>
 
-      {/* Ads after every 4 cards */}
-      {!isAdFree && user && index % 4 === 0 && (
-        <View style={styles.adContainer}>
-          <AdBanner />
-        </View>
-      )}
+{!isAdFree && user && index % 2 === 0 && (
+  <View style={styles.adContainer}>
+    <AdBanner adIndex={Math.floor(index / 2)} />
+  </View>
+)}
+
     </>
   );
 };
@@ -713,9 +714,7 @@ const renderAnimeCard = ({ item, index }: { item: AnimeItem; index: number }) =>
       {renderPaginationControls()}
 
       {/* Bottom Tab Indicator */}
-      <View style={styles.tabIndicator}>
-        <View style={styles.activeTabLine} />
-      </View>
+    
     </SafeAreaView>
   );
 }
@@ -810,7 +809,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     borderRadius: 16,
     overflow: 'hidden',
-    marginTop: 30,
+    marginTop: 50,
     marginBottom: 24,
   },
   // Top badge container centers the trapezoid
@@ -840,6 +839,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
  posterContainer: {
+  borderRadius:10,
   width: '100%',
   height: 360,
   position: 'relative',
@@ -848,49 +848,64 @@ const styles = StyleSheet.create({
   backgroundColor: '#1A1A1A', // optional background
 },
 animePoster: {
+  borderRadius:10,
   width: '90%',
   height: '90%',
   resizeMode: 'cover',
 },
 
 
-ratingOverlay: {
+
+
+
+
+// ADD THIS NEW STYLE for the parent
+combinedOverlayContainer: {
   position: 'absolute',
-  top: 20,
+  top: 15,
   alignSelf: 'center',
-  backgroundColor: COLORS.cyan,
-  paddingHorizontal: 16,
-  paddingVertical: 8,
-  borderRadius: 8,
+  backgroundColor: 'rgba(0, 0, 0, 0.8)', // The single 70% opacity background
+  borderRadius: 5, // Rounded corners for the whole block
+  padding: 12, // Padding for the inside
+  alignItems: 'center', // Center the content
+  zIndex: 2,
+},
+
+// MODIFY this style
+ratingOverlay: {
+  // REMOVED: position, top, alignSelf, backgroundColor, padding, borderRadius, zIndex
   flexDirection: 'row',
   alignItems: 'center',
-  zIndex: 2,
+  marginBottom: 8, // Added margin to separate it from the banner below
 },
+
+// MODIFY this style
 ratingOverlayText: {
-  color: '#000',
+  // REMOVED: backgroundColor
+  color: '#ffffffff',
   marginLeft: 8,
-  fontSize: 20,
+  fontSize: 22,
   fontFamily: FONTS.title,
-  fontWeight: '900',
+  fontWeight: "bold",
 },
+
+// MODIFY this style
 releaseBanner: {
-  position: 'absolute',
-  top: 70,
-  alignSelf: 'center',
-  backgroundColor: 'rgba(0,0,0,0.85)',
-  paddingVertical: 6,
-  paddingHorizontal: 12,
-  borderRadius: 4,
+  // REMOVED: position, top, alignSelf, backgroundColor, padding, borderRadius, zIndex
   alignItems: 'center',
-  zIndex: 2,
 },
+
+// This style is unchanged
 releaseBannerText: {
+  padding: 2,
   color: '#FFF',
   fontSize: 12,
   fontFamily: FONTS.title,
   fontWeight: 'bold',
   letterSpacing: 1,
 },
+
+
 
 
 
@@ -916,17 +931,19 @@ releaseBannerText: {
     fontFamily: FONTS.body,
     fontWeight: 'bold',
   },
-  titleButton: {
+titleButton: {
     backgroundColor: COLORS.cyan,
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: 'center', // This is correct
   },
   titleButtonText: {
     color: '#000',
     fontSize: 16,
     fontFamily: FONTS.title,
-    fontWeight: '900',
+    fontWeight: 'bold',
     letterSpacing: 1,
+    textAlign: 'center',     // ADDED: This is the critical fix for centering the text.
+    paddingHorizontal: 8,  // ADDED: Prevents long text from touching the edges.
   },
   adContainer: {
     marginBottom: 24,

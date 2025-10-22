@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.cyan,
     fontSize: 32,
-    fontFamily: FONTS.title,
+    // fontFamily: FONTS.title,
     marginTop: 16,
     fontWeight: 'bold',
   },
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   formTitle: {
     color: COLORS.text,
     fontSize: 24,
-    fontFamily: FONTS.title,
+    // fontFamily: FONTS.title,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   loginText: {
     color: '#000',
     fontSize: 18,
-    fontFamily: FONTS.title,
+    // fontFamily: FONTS.title,
     fontWeight: 'bold',
   },
   forgotPassword: {

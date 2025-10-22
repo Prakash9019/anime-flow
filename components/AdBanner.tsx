@@ -13,23 +13,25 @@ interface Ad {
   targetUrl?: string;
 }
 
-export default function AdBanner() {
+export default function AdBanner({ adIndex = 0 }: { adIndex?: number }) {
   const [ad, setAd] = useState<Ad | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchAd();
-  }, []);
+  }, [adIndex]); // Refetch if adIndex changes
 
   const fetchAd = async () => {
     try {
       const response = await fetch(`${ApiService.baseURL}/ads/active`);
       const data = await response.json();
-      
+
       if (data.ads && data.ads.length > 0) {
-        const randomAd: Ad = data.ads[0];
-        setAd(randomAd);
-        trackView(randomAd._id);
+        // Rotate ads by index, wrap around if needed
+        const finalIndex = adIndex % data.ads.length;
+        const pickedAd: Ad = data.ads[finalIndex];
+        setAd(pickedAd);
+        trackView(pickedAd._id);
       }
     } catch (error) {
       console.error('Error fetching ad:', error);
@@ -37,6 +39,9 @@ export default function AdBanner() {
       setLoading(false);
     }
   };
+
+  // ... rest of the code as you had before ...
+
 
   const trackView = async (adId: string) => {
     try {

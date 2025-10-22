@@ -13,16 +13,21 @@ export default function Splash(): React.ReactElement {
   const navigation = useNavigation<SplashNavProp>();
 
   useEffect(() => {
-    checkAuthStatus();
-  }, []);
+    const timer = setTimeout(() => {
+      navigation.replace('UserAuth'); // Now works: replace exists!
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [navigation]);
 
   const checkAuthStatus = async () => {
     try {
+         const token = await AsyncStorage.getItem('token');
+         console.log('User token:', token);
       // Wait for minimum splash duration
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Check for user token
-      const token = await AsyncStorage.getItem('token');
+      // const token = await AsyncStorage.getItem('token');
       const adminToken = await AsyncStorage.getItem('adminToken');
 
       if (adminToken) {

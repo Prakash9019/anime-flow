@@ -519,7 +519,7 @@ export default function DonationModal({ visible, onClose, onSuccess }: DonationM
       <PaymentModal
         visible={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
-        amount={Math.round(donationAmount )} // Stripe requires amount in cents/smallest unit
+        amount={Math.round(donationAmount*100 )} // Stripe requires amount in cents/smallest unit
         onSuccess={handlePaymentSuccess}
       />
     </Modal>

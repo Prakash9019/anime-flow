@@ -2,11 +2,17 @@
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ApiService, { User } from '../services/api';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+ // Make sure to import your ApiService instance
+import { RootStackParamList } from '../types/index'; // Import your param list
 
+// ... inside your settings/profile component
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
+  
+const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   useEffect(() => {
     checkAuthState();
   }, []);
@@ -54,6 +60,10 @@ export const useAuth = () => {
   const logout = async () => {
     try {
       await ApiService.logout();
+      navigation.reset({
+      index: 0,
+      routes: [{ name: 'UserAuth' }],
+    });
       setUser(null);
     } catch (error) {
       console.error('Logout error:', error);

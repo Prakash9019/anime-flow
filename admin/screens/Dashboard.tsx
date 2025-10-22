@@ -542,6 +542,7 @@ export default function Dashboard(): React.ReactElement {
         headers: await ApiService.getAuthHeaders(),
       });
       const data: DashboardStats = await response.json();
+      console.log('Stats:', data);
       setStats(data);
     } catch (error) {
       console.error('Error fetching stats:', error);

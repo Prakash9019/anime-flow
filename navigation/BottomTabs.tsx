@@ -63,20 +63,11 @@ export default function UserTabs() {
             },
           }}
           options={{ 
-            tabBarIcon: ({ color, size, focused }) => (
-              <View style={[
-                // styles.donateButton,
-                focused && styles.donateButtonActive
-              ]}>
-                <Ionicons 
-                  name="heart" 
-                  color={focused ? COLORS.black : COLORS.cyan} 
-                  size={size} 
-                />
-              </View>
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="heart" color={color} size={size} />
             ),
-            tabBarLabel: 'Support',
           }}
+         
         />
         
         <Tab.Screen 

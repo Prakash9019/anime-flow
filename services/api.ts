@@ -114,7 +114,7 @@
 // services/api.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'https://anime-backend-817384216349.asia-south1.run.app/api';
+const API_BASE_URL = 'https://anime-backend-bnwa.onrender.com/api';
 
 export interface User {
   id: string;
@@ -210,6 +210,7 @@ async googleAuth(googleData: { googleId: string; name: string; email: string; av
     this.token = null;
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('user');
+    await AsyncStorage.removeItem('adminToken'); // <-- ADD THIS LINE
   }
 
   // Anime methods

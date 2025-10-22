@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../theme';
 import Svg, { Polygon, Text as SvgText } from 'react-native-svg';
 
-
 const TrapezoidBadge = ({ rank }: { rank: number }) => (
   <View
     style={{
@@ -16,33 +15,22 @@ const TrapezoidBadge = ({ rank }: { rank: number }) => (
       marginVertical: 0,
     }}
   >
-    <Svg height="35" width="140">
-      {/* Reverse trapezium shape */}
-      <Polygon points="0,0 140,0 110,35 30,35" fill="#00FFFF" />
+    {/* 1. Increased Svg height and width */}
+    <Svg height="45" width="175">
+      {/* 2. Adjusted Polygon points to match new dimensions */}
+      <Polygon points="0,0 175,0 140,45 35,45" fill="#00FFFF" />
 
-      {/* Rank Number */}
+      {/* 3. Scaled and re-centered text */}
       <SvgText
         fill="#000"
-        fontSize="16"
+        fontSize="21" // Increased font size
         fontWeight="900"
-        x="40"   // move left slightly
-        y="22"
+        x="45" // Adjusted x position
+        y="28" // Adjusted y position
         textAnchor="middle"
       >
-        # {rank} {"   " } {"Rated"}
+        # {rank} {"   "} {"Rated"}
       </SvgText>
-
-      {/* "RATED" Label */}
-      {/* <SvgText
-        fill="#000"
-        fontSize="16"
-        fontWeight="1000"
-        x="90"   // move right slightly
-        y="22"
-        textAnchor="middle"
-      >
-        Rated
-      </SvgText> */}
     </Svg>
   </View>
 );
@@ -104,3 +92,60 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 });
+
+
+// // components/RatingBanner.tsx
+// import React from 'react';
+// import { View, Text, StyleSheet } from 'react-native';
+// import { Ionicons } from '@expo/vector-icons';
+// import { COLORS, FONTS } from '../theme';
+// import { Svg, Polygon, Text as SvgText } from 'react-native-svg';
+
+// // This component creates the chevron/banner shape
+// const ChevronBadge = ({ rank }: { rank: number }) => {
+//   const bannerWidth = 180;
+//   const bannerHeight = 40;
+//   const pointHeight = 15;
+//   const totalHeight = bannerHeight + pointHeight; // 55
+//   const midPoint = bannerWidth / 2; // 90
+
+//   // Defines the 5 points of the banner shape
+//   const points = `0,0 ${bannerWidth},0 ${bannerWidth},${bannerHeight} ${midPoint},${totalHeight} 0,${bannerHeight}`;
+
+//   return (
+//     <View
+//       style={{
+//         position: 'absolute',
+//         top: 0,
+//         alignSelf: 'center',
+//         zIndex: 3,
+//       }}
+//     >
+//       <Svg height={totalHeight} width={bannerWidth}>
+//         <Polygon points={points} fill={COLORS.cyan} />
+
+//         <SvgText
+//           fill="#000"
+//           fontSize="16"
+//           fontFamily={FONTS.title} // Added font family
+//           fontWeight="900"
+//           x={midPoint}
+//           y={bannerHeight / 2 + 6} // Adjusted Y for vertical centering
+//           textAnchor="middle"
+//         >
+//           # {rank} Rated
+//         </SvgText>
+//       </Svg>
+//     </View>
+//   );
+// };
+
+// interface RatingBannerProps {
+//   rating: number; // e.g. 1
+//   label?: string; // This is no longer used by the new badge
+// }
+
+// export default function RatingBanner({ rating }: RatingBannerProps) {
+//   // We only render the new badge. The other styles are not needed.
+//   return <ChevronBadge rank={rating} />;
+// }

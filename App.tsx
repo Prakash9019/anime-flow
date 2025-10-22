@@ -14,7 +14,7 @@ import { COLORS } from './theme';
 // import AppLoading from 'expo-app-loading';
 const isProduction = process.env.NODE_ENV === 'production';
 
-const publishableKey = isProduction ? 'pk_live_51SGjE8BjlYTxejjmqLMF4SeL0W6s7LkOU7a0aqbFwquZ73gmJTHqKu82Vf4EeTZLJ8VAYKh9OII12rGFTpEIYZvk00nruMAiYz' : 'pk_live_51SGjE8BjlYTxejjmqLMF4SeL0W6s7LkOU7a0aqbFwquZ73gmJTHqKu82Vf4EeTZLJ8VAYKh9OII12rGFTpEIYZvk00nruMAiYz'; // Your Test Key
+const publishableKey = isProduction ? 'pk_test_51SGjE8BjlYTxejjmomdvZa05REahMpnTFmGv4UvQmjRomph6mbD3CYD3ZZkyVCkFD7df3ELbwcDnYFnafRpTOG5500mG6ASKRE' : 'pk_live_51SGjE8BjlYTxejjmqLMF4SeL0W6s7LkOU7a0aqbFwquZ73gmJTHqKu82Vf4EeTZLJ8VAYKh9OII12rGFTpEIYZvk00nruMAiYz'; // Your Test Key
 
 
 type RootStackParamList = {

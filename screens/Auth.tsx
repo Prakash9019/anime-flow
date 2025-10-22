@@ -1,5 +1,5 @@
 // screens/Auth.tsx
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,11 +18,41 @@ import Logo from '../components/Logo';
 import AuthOptions from '../components/AuthOptions';
 import { COLORS, FONTS, SIZES } from '../theme';
 import { RootStackParamList } from '../types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type AuthNavProp = NativeStackNavigationProp<RootStackParamList, 'UserAuth'>;
 
 export default function Auth(): React.ReactElement {
   const navigation = useNavigation<AuthNavProp>();
+  
+    useEffect(() => {
+      checkAuthStatus();
+    }, []);
+  
+    const checkAuthStatus = async () => {
+      try {
+           const token = await AsyncStorage.getItem('token');
+           console.log('User token:', token);
+        // Wait for minimum splash duration
+        await new Promise(resolve => setTimeout(resolve, 1500));
+  
+        // Check for user token
+        // const token = await AsyncStorage.getItem('token');
+        const adminToken = await AsyncStorage.getItem('adminToken');
+  
+        if (adminToken) {
+          // Admin is logged in
+          navigation.replace('AdminMain');
+        } else if (token) {
+          // User is logged in
+          navigation.replace('UserMain');
+        } 
+      } catch (error) {
+        console.error('Auth check error:', error);
+        // On error, go to auth screen
+        navigation.replace('UserAuth');
+      }
+    };
   const [showSheet, setShowSheet] = useState(false);
 
   const openAuthOptions = () => setShowSheet(true);
